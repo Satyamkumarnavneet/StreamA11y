@@ -9,7 +9,7 @@ The harness supports **protocol-compatible, self-contained HTML chat pages** usi
 - **90 generated interfaces:** five recorded Claude model IDs × three prompt conditions × six samples, using one shared task brief. HTML files and raw returned text are included.
 - **89 analyzed interfaces:** one output cannot start generation and is retained as incompatible.
 - **60 repair outputs:** the same 30 Plain interfaces repaired under generic feedback and StreamA11y feedback.
-- **11 fixtures:** a reference, nine lifecycle-fault variants spanning eight check families, and one static missing-label variant.
+- **11 fixtures:** a reference, nine lifecycle-fault variants spanning eight check families (focus loss has two: `focus-drop` and `focus-steal`), and one static missing-label variant.
 - **Five scenarios:** completion, Stop after four chunks, completed regeneration, Stop/Regenerate with a late old chunk, and a network error after four chunks.
 
 In the included results, 53 of 89 compatible originals fail at least one strict lifecycle check. A separate contrast-enabled audit flags color contrast in 47 of 89. Chromium, Firefox, and WebKit agree on the recorded lifecycle failure sets; this does not establish agreement among assistive technologies. See the [benchmark card](BENCHMARK_CARD.md) for definitions, exclusions, and provenance.
