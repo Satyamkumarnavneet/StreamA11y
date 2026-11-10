@@ -1,0 +1,27 @@
+{
+ "started": "2026-11-10T05:05:35.229Z",
+ "playwright": "1.65.0",
+ "inDir": "corpus/generated",
+ "files": 90,
+ "engines": {
+  "chromium": {
+   "version": "158.0.8127.18",
+   "done": 90,
+   "incompatible": 1,
+   "errors": 0
+  },
+  "firefox": {
+   "version": "159.0",
+   "done": 90,
+   "incompatible": 1,
+   "errors": 0
+  },
+  "webkit": {
+   "version": "27.2",
+   "done": 90,
+   "incompatible": 1,
+   "errors": 0
+  }
+ },
+ "finished": "2026-11-10T05:33:32.029Z"
+}

@@ -1,0 +1,640 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Assistant</title>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        :root {
+            --color-bg: #f5f5f5;
+            --color-surface: #ffffff;
+            --color-primary: #2563eb;
+            --color-primary-hover: #1d4ed8;
+            --color-primary-focus: #1e40af;
+            --color-text: #1f2937;
+            --color-text-muted: #6b7280;
+            --color-user-bg: #dbeafe;
+            --color-assistant-bg: #f3f4f6;
+            --color-error: #dc2626;
+            --color-error-bg: #fef2f2;
+            --color-border: #e5e7eb;
+            --color-focus: #2563eb;
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --radius: 0.5rem;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        html {
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-size: 1rem;
+            line-height: 1.5;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            height: 100%;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            max-width: 48rem;
+            margin: 0 auto;
+            background-color: var(--color-surface);
+            box-shadow: var(--shadow);
+        }
+
+        .chat-header {
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-bottom: 1px solid var(--color-border);
+            background-color: var(--color-surface);
+        }
+
+        .chat-header h1 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--spacing-md);
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+
+        .message {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+            max-width: 85%;
+        }
+
+        .message-user {
+            align-self: flex-end;
+        }
+
+        .message-assistant {
+            align-self: flex-start;
+        }
+
+        .message-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .message-content {
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--radius);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .message-user .message-content {
+            background-color: var(--color-user-bg);
+            border-bottom-right-radius: var(--spacing-xs);
+        }
+
+        .message-assistant .message-content {
+            background-color: var(--color-assistant-bg);
+            border-bottom-left-radius: var(--spacing-xs);
+        }
+
+        .message-error .message-content {
+            background-color: var(--color-error-bg);
+            color: var(--color-error);
+        }
+
+        .status-indicator {
+            padding: var(--spacing-sm) var(--spacing-md);
+            text-align: center;
+            font-size: 0.875rem;
+            color: var(--color-text-muted);
+            font-style: italic;
+        }
+
+        .status-indicator[aria-live] {
+            min-height: 1.5rem;
+        }
+
+        .chat-input-area {
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-top: 1px solid var(--color-border);
+            background-color: var(--color-surface);
+        }
+
+        .input-row {
+            display: flex;
+            gap: var(--spacing-sm);
+            align-items: flex-end;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+        }
+
+        .input-wrapper label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--color-text);
+        }
+
+        #prompt {
+            width: 100%;
+            min-height: 2.75rem;
+            max-height: 10rem;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius);
+            font-family: inherit;
+            font-size: 1rem;
+            line-height: 1.5;
+            resize: vertical;
+            transition: border-color 0.15s ease;
+        }
+
+        #prompt:focus {
+            outline: none;
+            border-color: var(--color-focus);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+        }
+
+        #prompt:disabled {
+            background-color: var(--color-bg);
+            cursor: not-allowed;
+        }
+
+        .button-row {
+            display: flex;
+            gap: var(--spacing-sm);
+            flex-wrap: wrap;
+        }
+
+        button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-xs);
+            padding: var(--spacing-sm) var(--spacing-md);
+            min-height: 2.75rem;
+            min-width: 5rem;
+            border: 2px solid transparent;
+            border-radius: var(--radius);
+            font-family: inherit;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+        }
+
+        button:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background-color: var(--color-primary);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: var(--color-primary-hover);
+        }
+
+        .btn-primary:active:not(:disabled) {
+            background-color: var(--color-primary-focus);
+        }
+
+        .btn-secondary {
+            background-color: var(--color-surface);
+            color: var(--color-text);
+            border-color: var(--color-border);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background-color: var(--color-bg);
+        }
+
+        .btn-secondary:active:not(:disabled) {
+            background-color: var(--color-border);
+        }
+
+        .btn-danger {
+            background-color: var(--color-error);
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background-color: #b91c1c;
+        }
+
+        .btn-danger:active:not(:disabled) {
+            background-color: #991b1b;
+        }
+
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        @media (max-width: 640px) {
+            .chat-header {
+                padding: var(--spacing-sm) var(--spacing-md);
+            }
+
+            .chat-input-area {
+                padding: var(--spacing-sm) var(--spacing-md);
+            }
+
+            .message {
+                max-width: 95%;
+            }
+
+            button {
+                min-width: auto;
+                padding: var(--spacing-sm);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container" role="main">
+        <header class="chat-header">
+            <h1>Chat Assistant</h1>
+        </header>
+
+        <div 
+            id="messages" 
+            class="chat-messages" 
+            role="log" 
+            aria-live="polite" 
+            aria-label="Conversation history"
+            tabindex="0"
+        >
+            <!-- Messages will be inserted here -->
+        </div>
+
+        <div 
+            id="status" 
+            class="status-indicator" 
+            role="status" 
+            aria-live="polite" 
+            aria-atomic="true"
+        ></div>
+
+        <footer class="chat-input-area">
+            <div class="input-row">
+                <div class="input-wrapper">
+                    <label for="prompt" id="prompt-label">Your message</label>
+                    <textarea 
+                        id="prompt" 
+                        aria-labelledby="prompt-label"
+                        aria-describedby="prompt-hint"
+                        placeholder="Type your message here..."
+                        rows="1"
+                    ></textarea>
+                    <span id="prompt-hint" class="visually-hidden">
+                        Press Enter to send, Shift+Enter for new line
+                    </span>
+                </div>
+            </div>
+            <div class="button-row" style="margin-top: var(--spacing-sm);">
+                <button 
+                    id="send" 
+                    type="button" 
+                    class="btn-primary"
+                    aria-label="Send message"
+                >
+                    Send
+                </button>
+                <button 
+                    id="stop" 
+                    type="button" 
+                    class="btn-danger"
+                    aria-label="Stop generating response"
+                    disabled
+                >
+                    Stop
+                </button>
+                <button 
+                    id="regenerate" 
+                    type="button" 
+                    class="btn-secondary"
+                    aria-label="Regenerate last response"
+                    disabled
+                >
+                    Regenerate
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // State
+            let conversationHistory = [];
+            let currentHandle = null;
+            let isStreaming = false;
+            let lastUserMessageIndex = -1;
+            let wasAborted = false;
+
+            // DOM Elements
+            const messagesContainer = document.getElementById('messages');
+            const promptInput = document.getElementById('prompt');
+            const sendButton = document.getElementById('send');
+            const stopButton = document.getElementById('stop');
+            const regenerateButton = document.getElementById('regenerate');
+            const statusIndicator = document.getElementById('status');
+
+            // Utility Functions
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            function setStatus(message, isError = false) {
+                statusIndicator.textContent = message;
+                statusIndicator.style.color = isError ? 'var(--color-error)' : '';
+            }
+
+            function clearStatus() {
+                statusIndicator.textContent = '';
+            }
+
+            function updateButtonStates() {
+                const hasUserMessage = conversationHistory.some(m => m.role === 'user');
+                
+                sendButton.disabled = isStreaming;
+                stopButton.disabled = !isStreaming;
+                regenerateButton.disabled = isStreaming || !hasUserMessage;
+                promptInput.disabled = isStreaming;
+
+                if (!isStreaming) {
+                    promptInput.focus();
+                }
+            }
+
+            function scrollToBottom() {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            function createMessageElement(role, content, isError = false) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message message-${role}${isError ? ' message-error' : ''}`;
+                messageDiv.setAttribute('role', 'article');
+
+                const labelDiv = document.createElement('div');
+                labelDiv.className = 'message-label';
+                labelDiv.textContent = role === 'user' ? 'You' : 'Assistant';
+                labelDiv.id = `label-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                contentDiv.textContent = content;
+                contentDiv.setAttribute('aria-labelledby', labelDiv.id);
+
+                messageDiv.appendChild(labelDiv);
+                messageDiv.appendChild(contentDiv);
+
+                return messageDiv;
+            }
+
+            function addMessage(role, content, isError = false) {
+                const messageEl = createMessageElement(role, content, isError);
+                messagesContainer.appendChild(messageEl);
+                scrollToBottom();
+                return messageEl;
+            }
+
+            function getLastAssistantMessageElement() {
+                const messages = messagesContainer.querySelectorAll('.message-assistant');
+                return messages.length > 0 ? messages[messages.length - 1] : null;
+            }
+
+            function removeLastAssistantMessage() {
+                const lastAssistant = getLastAssistantMessageElement();
+                if (lastAssistant) {
+                    lastAssistant.remove();
+                }
+            }
+
+            function startStream(messages) {
+                isStreaming = true;
+                wasAborted = false;
+                updateButtonStates();
+                setStatus('Assistant is generating a response...');
+
+                let currentAssistantMessage = null;
+                let currentContent = '';
+
+                const onToken = (text) => {
+                    if (wasAborted) {
+                        // Ignore tokens that arrive after abort
+                        return;
+                    }
+
+                    currentContent += text;
+
+                    if (!currentAssistantMessage) {
+                        currentAssistantMessage = addMessage('assistant', currentContent);
+                    } else {
+                        const contentEl = currentAssistantMessage.querySelector('.message-content');
+                        contentEl.textContent = currentContent;
+                    }
+
+                    scrollToBottom();
+                };
+
+                const onDone = () => {
+                    if (wasAborted) {
+                        return;
+                    }
+
+                    isStreaming = false;
+                    currentHandle = null;
+
+                    if (currentContent) {
+                        conversationHistory.push({
+                            role: 'assistant',
+                            content: currentContent
+                        });
+                    }
+
+                    setStatus('Response complete.');
+                    setTimeout(clearStatus, 2000);
+                    updateButtonStates();
+                };
+
+                const onError = (error) => {
+                    if (wasAborted) {
+                        return;
+                    }
+
+                    isStreaming = false;
+                    currentHandle = null;
+
+                    const errorMessage = error && error.message ? error.message : 'An error occurred';
+                    
+                    if (currentAssistantMessage) {
+                        currentAssistantMessage.classList.add('message-error');
+                        const contentEl = currentAssistantMessage.querySelector('.message-content');
+                        contentEl.textContent = currentContent + (currentContent ? '\n\n' : '') + 'Error: ' + errorMessage;
+                    } else {
+                        addMessage('assistant', 'Error: ' + errorMessage, true);
+                    }
+
+                    setStatus('Error: ' + errorMessage, true);
+                    updateButtonStates();
+                };
+
+                currentHandle = window.ChatSDK.streamChat(messages, {
+                    onToken: onToken,
+                    onDone: onDone,
+                    onError: onError
+                });
+            }
+
+            function sendMessage() {
+                const content = promptInput.value.trim();
+                if (!content || isStreaming) return;
+
+                promptInput.value = '';
+
+                conversationHistory.push({
+                    role: 'user',
+                    content: content
+                });
+                lastUserMessageIndex = conversationHistory.length - 1;
+
+                addMessage('user', content);
+
+                const messagesToSend = conversationHistory.map(m => ({
+                    role: m.role,
+                    content: m.content
+                }));
+
+                startStream(messagesToSend);
+            }
+
+            function stopGeneration() {
+                if (!isStreaming || !currentHandle) return;
+
+                wasAborted = true;
+                currentHandle.abort();
+                currentHandle = null;
+                isStreaming = false;
+
+                // Keep the partial response in the conversation history
+                const lastAssistant = getLastAssistantMessageElement();
+                if (lastAssistant) {
+                    const contentEl = lastAssistant.querySelector('.message-content');
+                    const partialContent = contentEl.textContent;
+                    if (partialContent) {
+                        conversationHistory.push({
+                            role: 'assistant',
+                            content: partialContent
+                        });
+                    }
+                }
+
+                setStatus('Generation stopped.');
+                setTimeout(clearStatus, 2000);
+                updateButtonStates();
+            }
+
+            function regenerate() {
+                if (isStreaming) return;
+
+                // Find the last user message
+                let lastUserIndex = -1;
+                for (let i = conversationHistory.length - 1; i >= 0; i--) {
+                    if (conversationHistory[i].role === 'user') {
+                        lastUserIndex = i;
+                        break;
+                    }
+                }
+
+                if (lastUserIndex === -1) return;
+
+                // Remove the last assistant response from history (if any after the last user message)
+                if (conversationHistory.length > lastUserIndex + 1 && 
+                    conversationHistory[conversationHistory.length - 1].role === 'assistant') {
+                    conversationHistory.pop();
+                    removeLastAssistantMessage();
+                }
+
+                // Prepare messages up to and including the last user message
+                const messagesToSend = conversationHistory.slice(0, lastUserIndex + 1).map(m => ({
+                    role: m.role,
+                    content: m.content
+                }));
+
+                startStream(messagesToSend);
+            }
+
+            // Event Listeners
+            sendButton.addEventListener('click', sendMessage);
+
+            stopButton.addEventListener('click', stopGeneration);
+
+            regenerateButton.addEventListener('click', regenerate);
+
+            promptInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            // Auto-resize textarea
+            promptInput.addEventListener('input', () => {
+                promptInput.style.height = 'auto';
+                promptInput.style.height = Math.min(promptInput.scrollHeight, 160) + 'px';
+            });
+
+            // Initialize
+            updateButtonStates();
+            promptInput.focus();
+        })();
+    </script>
+</body>
+</html>
+```

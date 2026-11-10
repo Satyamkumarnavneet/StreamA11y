@@ -1,0 +1,504 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat Assistant</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --panel: #ffffff;
+    --border: #cfd5dd;
+    --text: #1d2128;
+    --muted: #4b5563;
+    --user: #e7f0ff;
+    --assistant: #ffffff;
+    --accent: #1d4ed8;
+    --accent-hover: #1e40af;
+    --focus: #1d4ed8;
+    --danger: #b91c1c;
+    --ok: #166534;
+    --warn: #92400e;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  .sr-only {
+    position: absolute !important;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-width: 880px;
+    margin: 0 auto;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  #status {
+    font-size: 13px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: #eef1f5;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  #status.generating { background: #e0ecff; color: var(--accent); }
+  #status.stopped    { background: #fef3c7; color: var(--warn); }
+  #status.finished   { background: #dcfce7; color: var(--ok); }
+  #status.error      { background: #fee2e2; color: var(--danger); }
+
+  main.chat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  #conversation {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  #conversation:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; }
+  #messages {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .empty {
+    margin: auto;
+    color: var(--muted);
+    text-align: center;
+  }
+  .msg {
+    max-width: 85%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--assistant);
+  }
+  .msg.user {
+    align-self: flex-end;
+    background: var(--user);
+  }
+  .msg.assistant { align-self: flex-start; }
+  .role {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .body {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+  }
+  .placeholder { color: var(--muted); font-style: italic; }
+  .note {
+    margin-top: 6px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .note.stopped { color: var(--warn); }
+  .note.error   { color: var(--danger); }
+  .cursor {
+    display: inline-block;
+    margin-left: 2px;
+    color: var(--accent);
+    animation: blink 1s steps(2, start) infinite;
+  }
+  @keyframes blink { to { visibility: hidden; } }
+  @media (prefers-reduced-motion: reduce) {
+    .cursor { animation: none; }
+  }
+
+  form {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+    align-items: flex-end;
+  }
+  #prompt {
+    flex: 1;
+    min-height: 44px;
+    max-height: 160px;
+    resize: vertical;
+    padding: 10px 12px;
+    font: inherit;
+    color: var(--text);
+    background: #fff;
+    border: 1px solid #6b7280;
+    border-radius: 8px;
+  }
+  #prompt::placeholder { color: var(--muted); opacity: 1; }
+  #prompt:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 1px;
+    border-color: var(--focus);
+  }
+  .controls { display: flex; flex-direction: column; gap: 6px; }
+  button {
+    font: inherit;
+    min-height: 36px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid #6b7280;
+    background: #fff;
+    color: var(--text);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  button:hover:not(:disabled) { background: #f0f3f7; }
+  button:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  #send {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  #send:hover:not(:disabled) { background: var(--accent-hover); }
+  #stop:not(:disabled) { border-color: var(--danger); color: var(--danger); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Chat Assistant</h1>
+    <span id="status" class="ready" role="status">Ready</span>
+  </header>
+
+  <main class="chat">
+    <div id="conversation" role="region" aria-label="Conversation" tabindex="0">
+      <p class="empty" id="empty">Send a message to start the conversation.</p>
+      <ol id="messages"></ol>
+    </div>
+
+    <form id="composer" autocomplete="off" aria-label="Message composer">
+      <label for="prompt" class="sr-only">Message</label>
+      <span id="prompt-hint" class="sr-only">Press Enter to send, Shift+Enter for a new line, and Escape to stop an answer that is generating.</span>
+      <textarea id="prompt" rows="2" placeholder="Type a message" aria-describedby="prompt-hint"></textarea>
+      <div class="controls">
+        <button type="submit" id="send">Send</button>
+        <button type="button" id="stop" disabled>Stop</button>
+        <button type="button" id="regenerate" disabled>Regenerate</button>
+      </div>
+    </form>
+  </main>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var conversationEl = document.getElementById("conversation");
+  var listEl = document.getElementById("messages");
+  var emptyEl = document.getElementById("empty");
+  var statusEl = document.getElementById("status");
+  var promptEl = document.getElementById("prompt");
+  var formEl = document.getElementById("composer");
+  var sendBtn = document.getElementById("send");
+  var stopBtn = document.getElementById("stop");
+  var regenBtn = document.getElementById("regenerate");
+
+  // Each entry: { role, content, state: 'complete'|'streaming'|'stopped'|'error', error?,
+  //               el?, bodyEl?, noteEl? }
+  var entries = [];
+  // The currently streaming run, or null when idle.
+  var activeRun = null;
+
+  // Status text is announced politely via role="status". It changes only on
+  // state transitions (start, stop, finish, error), not on every token.
+  function setStatus(kind, text) {
+    statusEl.className = kind;
+    statusEl.textContent = text;
+  }
+
+  function hasUserMessage() {
+    return entries.some(function (m) { return m.role === "user"; });
+  }
+
+  function updateControls() {
+    var busy = activeRun !== null;
+    var previouslyFocused = document.activeElement;
+
+    sendBtn.disabled = busy;
+    stopBtn.disabled = !busy;
+    regenBtn.disabled = busy || !hasUserMessage();
+
+    // A disabled element drops keyboard focus. Move focus somewhere useful so
+    // keyboard and screen reader users are not left at the top of the page.
+    if (previouslyFocused && previouslyFocused.disabled) {
+      (busy ? stopBtn : promptEl).focus();
+    }
+  }
+
+  function errorMessage(err) {
+    if (typeof err === "string" && err) return err;
+    if (err && typeof err.message === "string" && err.message) return err.message;
+    return "Unknown error";
+  }
+
+  function createEntryEl(m) {
+    var li = document.createElement("li");
+    li.className = "msg " + m.role;
+
+    var roleEl = document.createElement("span");
+    roleEl.className = "role";
+    roleEl.textContent = m.role === "user" ? "You" : "Assistant";
+
+    var body = document.createElement("div");
+    body.className = "body";
+
+    var note = document.createElement("div");
+    note.className = "note";
+    note.hidden = true;
+
+    li.appendChild(roleEl);
+    li.appendChild(body);
+    li.appendChild(note);
+
+    m.el = li;
+    m.bodyEl = body;
+    m.noteEl = note;
+  }
+
+  // Updates one entry's text in place, so existing nodes are kept and
+  // streaming does not rebuild the whole conversation.
+  function refreshEntry(m) {
+    var streaming = m.state === "streaming";
+    m.el.setAttribute("aria-busy", streaming ? "true" : "false");
+
+    m.bodyEl.textContent = "";
+    if (m.content) {
+      m.bodyEl.appendChild(document.createTextNode(m.content));
+      if (streaming) {
+        var caret = document.createElement("span");
+        caret.className = "cursor";
+        caret.setAttribute("aria-hidden", "true");
+        caret.textContent = "\u258D";
+        m.bodyEl.appendChild(caret);
+      }
+    } else if (streaming) {
+      m.bodyEl.textContent = "Generating\u2026";
+      m.bodyEl.className = "body placeholder";
+    } else if (m.role === "assistant") {
+      m.bodyEl.textContent = m.state === "stopped"
+        ? "(stopped before any text was shown)"
+        : "(no response)";
+      m.bodyEl.className = "body placeholder";
+    }
+    if (!(!m.content && (streaming || m.role === "assistant"))) {
+      m.bodyEl.className = "body";
+    }
+
+    m.noteEl.className = "note";
+    m.noteEl.textContent = "";
+    m.noteEl.hidden = true;
+
+    if (m.role === "assistant" && m.state === "stopped") {
+      m.noteEl.classList.add("stopped");
+      m.noteEl.textContent = "Stopped";
+      m.noteEl.hidden = false;
+    } else if (m.role === "assistant" && m.state === "error") {
+      m.noteEl.classList.add("error");
+      m.noteEl.textContent = "Error: " + (m.error || "request failed");
+      m.noteEl.hidden = false;
+    }
+  }
+
+  // Full render for structural changes (new messages, state transitions).
+  function renderAll() {
+    entries.forEach(function (m) {
+      if (!m.el) createEntryEl(m);
+      refreshEntry(m);
+      if (m.el.parentNode !== listEl) listEl.appendChild(m.el);
+    });
+    emptyEl.hidden = entries.length > 0;
+    conversationEl.scrollTop = conversationEl.scrollHeight;
+  }
+
+  // Lightweight update for streaming tokens.
+  function refreshStreamingEntry(m) {
+    refreshEntry(m);
+    conversationEl.scrollTop = conversationEl.scrollHeight;
+  }
+
+  // Convert conversation entries into the payload shape the SDK expects.
+  // Empty assistant entries are dropped so the server never sees blank turns.
+  function toPayload(list) {
+    var out = [];
+    list.forEach(function (m) {
+      if (m.role === "user") {
+        out.push({ role: "user", content: m.content });
+      } else if (m.role === "assistant" && m.content) {
+        out.push({ role: "assistant", content: m.content });
+      }
+    });
+    return out;
+  }
+
+  function finishRun(run, kind, text) {
+    run.finished = true;
+    run.target.state = kind === "finished" ? "complete" : "error";
+    if (kind !== "finished") run.target.error = text;
+    activeRun = null;
+    setStatus(kind, kind === "finished" ? "Finished" : "Error: " + text);
+    updateControls();
+    renderAll();
+  }
+
+  function startRun(payload, target) {
+    var run = { aborted: false, finished: false, handle: null, target: target };
+    activeRun = run;
+    target.state = "streaming";
+    setStatus("generating", "Generating\u2026");
+    updateControls();
+    renderAll();
+
+    if (!window.ChatSDK || typeof window.ChatSDK.streamChat !== "function") {
+      finishRun(run, "error", "Chat API is not available on this page.");
+      return;
+    }
+
+    var callbacks = {
+      onToken: function (text) {
+        // Ignore late chunks that were in flight when the user pressed Stop.
+        if (run.aborted || run.finished) return;
+        target.content += String(text == null ? "" : text);
+        refreshStreamingEntry(target);
+      },
+      onDone: function () {
+        if (run.aborted || run.finished) return;
+        finishRun(run, "finished");
+      },
+      onError: function (err) {
+        if (run.aborted || run.finished) return;
+        finishRun(run, "error", errorMessage(err));
+      }
+    };
+
+    try {
+      run.handle = window.ChatSDK.streamChat(payload, callbacks);
+    } catch (e) {
+      if (!run.aborted && !run.finished) {
+        finishRun(run, "error", errorMessage(e));
+      }
+    }
+  }
+
+  function sendMessage() {
+    var text = promptEl.value.trim();
+    if (!text || activeRun !== null) return;
+
+    entries.push({ role: "user", content: text, state: "complete" });
+    promptEl.value = "";
+
+    var target = { role: "assistant", content: "", state: "streaming" };
+    entries.push(target);
+    startRun(toPayload(entries.slice(0, -1)), target);
+  }
+
+  function stopStream() {
+    var run = activeRun;
+    if (!run) return;
+
+    run.aborted = true;
+    run.finished = true;
+    try {
+      if (run.handle && typeof run.handle.abort === "function") run.handle.abort();
+    } catch (e) {
+      // Ignore abort failures; the local state is already marked stopped.
+    }
+
+    run.target.state = "stopped";
+    activeRun = null;
+    setStatus("stopped", "Stopped");
+    updateControls();
+    renderAll();
+  }
+
+  function regenerate() {
+    if (activeRun !== null) return;
+
+    var lastUserIdx = -1;
+    for (var i = entries.length - 1; i >= 0; i--) {
+      if (entries[i].role === "user") { lastUserIdx = i; break; }
+    }
+    if (lastUserIdx === -1) return;
+
+    // Drop everything after the last user message (the old answer and any trailing entries).
+    entries.slice(lastUserIdx + 1).forEach(function (m) {
+      if (m.el && m.el.parentNode) m.el.parentNode.removeChild(m.el);
+    });
+    entries = entries.slice(0, lastUserIdx + 1);
+
+    var target = { role: "assistant", content: "", state: "streaming" };
+    entries.push(target);
+    startRun(toPayload(entries.slice(0, -1)), target);
+  }
+
+  formEl.addEventListener("submit", function (e) {
+    e.preventDefault();
+    sendMessage();
+  });
+
+  promptEl.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  // Escape stops the answer currently streaming (keyboard shortcut in addition to the Stop button).
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && activeRun !== null) {
+      stopStream();
+    }
+  });
+
+  stopBtn.addEventListener("click", stopStream);
+  regenBtn.addEventListener("click", regenerate);
+
+  setStatus("ready", "Ready");
+  updateControls();
+  renderAll();
+})();
+</script>
+</body>
+</html>
+```

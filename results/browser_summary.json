@@ -1,0 +1,161 @@
+{
+ "chromium": {
+  "n": 90,
+  "compared": 89,
+  "identical_failure_sets": 89,
+  "browser_any": 53,
+  "jsdom_any": 53,
+  "focus_engine_raw_lost": 53,
+  "focus_rule_lost": 53,
+  "focus_jsdom_lost": 53,
+  "per_check": {
+   "silent-start": {
+    "both": 13,
+    "only_jsdom": 0,
+    "only_browser": 0
+   },
+   "silent-terminal": {
+    "both": 12,
+    "only_jsdom": 0,
+    "only_browser": 0
+   },
+   "announcement-overload": {
+    "both": 14,
+    "only_jsdom": 0,
+    "only_browser": 0
+   },
+   "focus-lost": {
+    "both": 53,
+    "only_jsdom": 0,
+    "only_browser": 0
+   },
+   "stop-unreachable": {
+    "both": 0,
+    "only_jsdom": 0,
+    "only_browser": 0
+   },
+   "partial-lost": {
+    "both": 2,
+    "only_jsdom": 0,
+    "only_browser": 0
+   },
+   "stale-leak": {
+    "both": 17,
+    "only_jsdom": 0,
+    "only_browser": 0
+   },
+   "busy-stuck": {
+    "both": 0,
+    "only_jsdom": 0,
+    "only_browser": 0
+   }
+  },
+  "disagreements": []
+ },
+ "firefox": {
+  "n": 90,
+  "compared": 89,
+  "identical_failure_sets": 89,
+  "browser_any": 53,
+  "jsdom_any": 53,
+  "focus_engine_raw_lost": 53,
+  "focus_rule_lost": 53,
+  "focus_jsdom_lost": 53,
+  "per_check": {
+   "silent-start": {
+    "both": 13,
+    "only_jsdom": 0,
+    "only_browser": 0
+   },
+   "silent-terminal": {
+    "both": 12,
+    "only_jsdom": 0,
+    "only_browser": 0
+   },
+   "announcement-overload": {
+    "both": 14,
+    "only_jsdom": 0,
+    "only_browser": 0
+   },
+   "focus-lost": {
+    "both": 53,
+    "only_jsdom": 0,
+    "only_browser": 0
+   },
+   "stop-unreachable": {
+    "both": 0,
+    "only_jsdom": 0,
+    "only_browser": 0
+   },
+   "partial-lost": {
+    "both": 2,
+    "only_jsdom": 0,
+    "only_browser": 0
+   },
+   "stale-leak": {
+    "both": 17,
+    "only_jsdom": 0,
+    "only_browser": 0
+   },
+   "busy-stuck": {
+    "both": 0,
+    "only_jsdom": 0,
+    "only_browser": 0
+   }
+  },
+  "disagreements": []
+ },
+ "webkit": {
+  "n": 90,
+  "compared": 89,
+  "identical_failure_sets": 89,
+  "browser_any": 53,
+  "jsdom_any": 53,
+  "focus_engine_raw_lost": 53,
+  "focus_rule_lost": 53,
+  "focus_jsdom_lost": 53,
+  "per_check": {
+   "silent-start": {
+    "both": 13,
+    "only_jsdom": 0,
+    "only_browser": 0
+   },
+   "silent-terminal": {
+    "both": 12,
+    "only_jsdom": 0,
+    "only_browser": 0
+   },
+   "announcement-overload": {
+    "both": 14,
+    "only_jsdom": 0,
+    "only_browser": 0
+   },
+   "focus-lost": {
+    "both": 53,
+    "only_jsdom": 0,
+    "only_browser": 0
+   },
+   "stop-unreachable": {
+    "both": 0,
+    "only_jsdom": 0,
+    "only_browser": 0
+   },
+   "partial-lost": {
+    "both": 2,
+    "only_jsdom": 0,
+    "only_browser": 0
+   },
+   "stale-leak": {
+    "both": 17,
+    "only_jsdom": 0,
+    "only_browser": 0
+   },
+   "busy-stuck": {
+    "both": 0,
+    "only_jsdom": 0,
+    "only_browser": 0
+   }
+  },
+  "disagreements": []
+ }
+}

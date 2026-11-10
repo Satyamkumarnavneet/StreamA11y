@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+            background: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            background: white;
+        }
+
+        .chat-header h1 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            animation: slideIn 0.2s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 8px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+
+        .message.user .message-content {
+            background: #007bff;
+            color: white;
+            border-radius: 18px 4px 18px 18px;
+        }
+
+        .message.assistant .message-content {
+            background: #e8e8e8;
+            color: #333;
+            border-radius: 4px 18px 18px 18px;
+        }
+
+        .message-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+
+        .message.user .message-label {
+            text-align: right;
+        }
+
+        .chat-input-area {
+            padding: 16px 20px;
+            border-top: 1px solid #e0e0e0;
+            background: white;
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        #prompt {
+            padding: 10px 14px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 40px;
+            max-height: 120px;
+            line-height: 1.5;
+        }
+
+        #prompt:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s, opacity 0.2s;
+            white-space: nowrap;
+        }
+
+        #send {
+            background: #007bff;
+            color: white;
+        }
+
+        #send:hover:not(:disabled) {
+            background: #0056b3;
+        }
+
+        #send:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #stop {
+            background: #dc3545;
+            color: white;
+            display: none;
+        }
+
+        #stop:hover {
+            background: #c82333;
+        }
+
+        #regenerate {
+            background: #6c757d;
+            color: white;
+            display: none;
+        }
+
+        #regenerate:hover:not(:disabled) {
+            background: #5a6268;
+        }
+
+        #regenerate:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status-message {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+            min-height: 16px;
+        }
+
+        .status-message.error {
+            color: #dc3545;
+        }
+
+        .status-message.success {
+            color: #28a745;
+        }
+
+        .status-message.generating {
+            color: #007bff;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #999;
+            text-align: center;
+        }
+
+        .empty-state p {
+            font-size: 16px;
+        }
+
+        /* Scroll to bottom smooth behavior */
+        .chat-messages {
+            scroll-behavior: smooth;
+        }
+
+        @media (max-width: 600px) {
+            .message-content {
+                max-width: 85%;
+            }
+
+            .chat-input-area {
+                flex-wrap: wrap;
+            }
+
+            .button-group {
+                width: 100%;
+            }
+
+            button {
+                flex: 1;
+                min-width: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>Chat Assistant</h1>
+        </div>
+
+        <div class="chat-messages" id="chat-messages">
+            <div class="empty-state">
+                <p>Start a conversation by typing a message below.</p>
+            </div>
+        </div>
+
+        <div class="chat-input-area">
+            <div class="input-wrapper">
+                <textarea
+                    id="prompt"
+                    placeholder="Type your message here..."
+                    aria-label="Message input"
+                ></textarea>
+                <div class="status-message" id="status-message" role="status" aria-live="polite" aria-atomic="true"></div>
+            </div>
+
+            <div class="button-group">
+                <button id="send" aria-label="Send message">Send</button>
+                <button id="stop" aria-label="Stop generating">Stop</button>
+                <button id="regenerate" aria-label="Regenerate last answer">Regenerate</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Screen reader announcements -->
+    <div id="sr-announcements" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
+
+    <script>
+        // State management
+        const state = {
+            messages: [],
+            isGenerating: false,
+            currentStreamHandle: null,
+            lastUserMessageIndex: -1
+        };
+
+        // DOM elements
+        const promptInput = document.getElementById('prompt');
+        const sendButton = document.getElementById('send');
+        const stopButton = document.getElementById('stop');
+        const regenerateButton = document.getElementById('regenerate');
+        const chatMessages = document.getElementById('chat-messages');
+        const statusMessage = document.getElementById('status-message');
+        const srAnnouncements = document.getElementById('sr-announcements');
+
+        /**
+         * Announce a message to screen readers
+         */
+        function announceToScreenReader(text) {
+            srAnnouncements.textContent = text;
+        }
+
+        /**
+         * Clear the empty state if needed
+         */
+        function clearEmptyState() {
+            const emptyState = chatMessages.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+        }
+
+        /**
+         * Create a message element
+         */
+        function createMessageElement(role, content, isStreaming = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            messageDiv.setAttribute('role', 'article');
+
+            const label = document.createElement('div');
+            label.className = 'message-label';
+            label.textContent = role === 'user' ? 'You' : 'Assistant';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = content;
+
+            if (isStreaming) {
+                contentDiv.setAttribute('aria-live', 'polite');
+                contentDiv.setAttribute('aria-label', 'Assistant is typing');
+                contentDiv.id = `assistant-response-${Date.now()}`;
+            }
+
+            messageDiv.appendChild(label);
+            messageDiv.appendChild(contentDiv);
+
+            return messageDiv;
+        }
+
+        /**
+         * Add a message to the conversation
+         */
+        function addMessage(role, content, isStreaming = false) {
+            clearEmptyState();
+            const messageElement = createMessageElement(role, content, isStreaming);
+            chatMessages.appendChild(messageElement);
+            scrollToBottom();
+            return messageElement;
+        }
+
+        /**
+         * Update the last assistant message with new content
+         */
+        function updateLastAssistantMessage(content) {
+            const lastMessage = chatMessages.querySelector('.message.assistant:last-of-type .message-content');
+            if (lastMessage) {
+                lastMessage.textContent = content;
+            }
+        }
+
+        /**
+         * Scroll to bottom of chat
+         */
+        function scrollToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        /**
+         * Update status message
+         */
+        function updateStatus(message, type = '') {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message ${type}`.trim();
+        }
+
+        /**
+         * Clear status message
+         */
+        function clearStatus() {
+            statusMessage.textContent = '';
+            statusMessage.className = 'status-message';
+        }
+
+        /**
+         * Update button visibility
+         */
+        function updateButtonStates() {
+            if (state.isGenerating) {
+                sendButton.disabled = true;
+                stopButton.style.display = 'block';
+                regenerateButton.style.display = 'none';
+            } else {
+                sendButton.disabled = false;
+                stopButton.style.display = 'none';
+                regenerateButton.style.display = state.messages.length > 0 ? 'block' : 'none';
+            }
+        }
+
+        /**
+         * Send a message
+         */
+        async function sendMessage() {
+            const message = promptInput.value.trim();
+            if (!message) return;
+
+            // Clear input
+            promptInput.value = '';
+            promptInput.style.height = 'auto';
+
+            // Add user message to state and UI
+            state.messages.push({ role: 'user', content: message });
+            state.lastUserMessageIndex = state.messages.length - 1;
+            addMessage('user', message);
+
+            // Start generating
+            generateResponse();
+        }
+
+        /**
+         * Generate a response to the last user message
+         */
+        async function generateResponse() {
+            if (state.isGenerating) return;
+            if (state.lastUserMessageIndex === -1) return;
+
+            state.isGenerating = true;
+            updateButtonStates();
+            updateStatus('Generating...', 'generating');
+            announceToScreenReader('Assistant is generating a response');
+
+            // Add empty assistant message
+            const assistantMessageElement = addMessage('assistant', '');
+            let accumulatedContent = '';
+
+            // Prepare messages for API
+            const messagesForAPI = state.messages.map(msg => ({
+                role: msg.role,
+                content: msg.content
+            }));
+
+            // Stream the response
+            const onToken = (text) => {
+                // Only update if we're still the current stream
+                if (!state.isGenerating) return;
+
+                accumulatedContent += text;
+                updateLastAssistantMessage(accumulatedContent);
+                scrollToBottom();
+            };
+
+            const onDone = () => {
+                if (!state.isGenerating) return;
+
+                state.isGenerating = false;
+                state.currentStreamHandle = null;
+
+                // Update state with complete message
+                if (state.messages[state.messages.length - 1].role === 'assistant') {
+                    state.messages[state.messages.length - 1].content = accumulatedContent;
+                } else {
+                    state.messages.push({ role: 'assistant', content: accumulatedContent });
+                }
+
+                updateButtonStates();
+                clearStatus();
+                announceToScreenReader('Assistant finished generating');
+
+                // Return focus to input if user didn't click something else
+                if (document.activeElement === document.body || document.activeElement === stopButton) {
+                    promptInput.focus();
+                }
+            };
+
+            const onError = (error) => {
+                if (!state.isGenerating) return;
+
+                state.isGenerating = false;
+                state.currentStreamHandle = null;
+
+                const errorMessage = error?.message || 'An error occurred while generating the response';
+                updateStatus(`Error: ${errorMessage}`, 'error');
+                announceToScreenReader(`Error: ${errorMessage}`);
+
+                updateButtonStates();
+
+                // Return focus to input
+                if (document.activeElement === stopButton) {
+                    promptInput.focus();
+                }
+            };
+
+            // Start streaming
+            state.currentStreamHandle = window.ChatSDK.streamChat(messagesForAPI, {
+                onToken,
+                onDone,
+                onError
+            });
+        }
+
+        /**
+         * Stop the current generation
+         */
+        function stopGeneration() {
+            if (!state.isGenerating || !state.currentStreamHandle) return;
+
+            state.isGenerating = false;
+            state.currentStreamHandle.abort();
+            state.currentStreamHandle = null;
+
+            updateButtonStates();
+            updateStatus('Stopped', 'success');
+            announceToScreenReader('Generation stopped');
+
+            // Return focus to input
+            promptInput.focus();
+        }
+
+        /**
+         * Regenerate the last response
+         */
+        function regenerateResponse() {
+            if (state.isGenerating) return;
+            if (state.lastUserMessageIndex === -1) return;
+
+            // Remove last assistant message if it exists
+            const lastMessage = chatMessages.querySelector('.message.assistant:last-of-type');
+            if (lastMessage && state.messages[state.messages.length - 1].role === 'assistant') {
+                lastMessage.remove();
+                state.messages.pop();
+            }
+
+            generateResponse();
+        }
+
+        /**
+         * Handle textarea auto-resize
+         */
+        function autoResizeTextarea() {
+            promptInput.style.height = 'auto';
+            promptInput.style.height = Math.min(promptInput.scrollHeight, 120) + 'px';
+        }
+
+        // Event listeners
+        sendButton.addEventListener('click', sendMessage);
+        stopButton.addEventListener('click', stopGeneration);
+        regenerateButton.addEventListener('click', regenerateResponse);
+
+        promptInput.addEventListener('input', autoResizeTextarea);
+        promptInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey && !state.isGenerating) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Initialize button states
+        updateButtonStates();
+    </script>
+</body>
+</html>

@@ -1,0 +1,612 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat assistant</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #f4f6f8;
+    --text: #1a1a1a;
+    --muted: #4a4f55;
+    --border: #5f6368;
+    --primary: #0b57d0;
+    --primary-text: #ffffff;
+    --danger: #b3261e;
+    --danger-text: #ffffff;
+    --user-bg: #e8f0fe;
+    --assistant-bg: #f4f6f8;
+    --error-bg: #fce8e6;
+    --error-text: #8c1d18;
+    --focus: #0b57d0;
+    --disabled-bg: #e3e5e8;
+    --disabled-text: #4a4f55;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121212;
+      --surface: #1e1f22;
+      --text: #ececec;
+      --muted: #c4c7cc;
+      --border: #9aa0a6;
+      --primary: #8ab4f8;
+      --primary-text: #0b1a33;
+      --danger: #f2b8b5;
+      --danger-text: #3a0b08;
+      --user-bg: #1c2b45;
+      --assistant-bg: #1e1f22;
+      --error-bg: #3a1513;
+      --error-text: #f9dedc;
+      --focus: #8ab4f8;
+      --disabled-bg: #2c2d30;
+      --disabled-text: #c4c7cc;
+    }
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html { font-size: 100%; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 1rem;
+    line-height: 1.5;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .skip-link {
+    position: absolute;
+    left: 0.5rem;
+    top: -10rem;
+    padding: 0.5rem 1rem;
+    background: var(--primary);
+    color: var(--primary-text);
+    border-radius: 0.25rem;
+    z-index: 10;
+  }
+  .skip-link:focus { top: 0.5rem; }
+
+  .visually-hidden {
+    position: absolute !important;
+    width: 1px; height: 1px;
+    margin: -1px; padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .app {
+    max-width: 50rem;
+    margin: 0 auto;
+    padding: 1rem;
+  }
+
+  header h1 {
+    font-size: 1.5rem;
+    margin: 0 0 0.75rem;
+  }
+
+  .status-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--surface);
+    margin-bottom: 0.75rem;
+  }
+  .status-dot {
+    width: 0.75rem; height: 0.75rem;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    flex: none;
+  }
+  .status-bar[data-state="generating"] .status-dot { background: var(--primary); border-color: var(--primary); animation: pulse 1.2s ease-in-out infinite; }
+  .status-bar[data-state="finished"] .status-dot { background: var(--text); border-color: var(--text); }
+  .status-bar[data-state="stopped"] .status-dot { background: transparent; border-color: var(--text); border-radius: 0.1rem; }
+  .status-bar[data-state="error"] .status-dot { background: var(--danger); border-color: var(--danger); border-radius: 0.1rem; transform: rotate(45deg); }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+  @media (prefers-reduced-motion: reduce) {
+    .status-bar[data-state="generating"] .status-dot { animation: none; }
+  }
+
+  .error-banner:empty { display: none; }
+  .error-banner {
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    border: 2px solid var(--danger);
+    border-radius: 0.5rem;
+    background: var(--error-bg);
+    color: var(--error-text);
+    overflow-wrap: anywhere;
+  }
+
+  .log-section h2, .composer h2 {
+    font-size: 1.125rem;
+    margin: 0 0 0.5rem;
+  }
+
+  .log {
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    min-height: 8rem;
+    max-height: 60vh;
+    overflow-y: auto;
+    background: var(--bg);
+  }
+  @media (max-height: 500px) {
+    .log { max-height: none; overflow: visible; }
+  }
+
+  .empty-note { color: var(--muted); margin: 0; }
+
+  .messages {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .message {
+    padding: 0.625rem 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border);
+    max-width: 100%;
+  }
+  .message.user { background: var(--user-bg); }
+  .message.assistant { background: var(--assistant-bg); }
+  .message.state-error { border: 2px solid var(--danger); }
+  .message h3 {
+    font-size: 0.95rem;
+    margin: 0 0 0.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: baseline;
+  }
+  .message .meta {
+    font-weight: normal;
+    font-size: 0.875rem;
+    color: var(--muted);
+  }
+  .message.state-error .meta { color: var(--text); font-weight: 600; }
+  .message .text {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .message .text.placeholder { color: var(--muted); font-style: italic; }
+
+  .composer { margin-top: 1rem; }
+  .composer label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+  .hint { margin: 0 0 0.5rem; color: var(--muted); font-size: 0.9rem; }
+  textarea {
+    display: block;
+    width: 100%;
+    min-height: 5rem;
+    padding: 0.5rem;
+    font: inherit;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    resize: vertical;
+  }
+  textarea[aria-invalid="true"] { border: 2px solid var(--danger); }
+  .field-error {
+    color: var(--error-text);
+    background: var(--error-bg);
+    margin: 0.5rem 0 0;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-weight: 600;
+  }
+  .field-error:empty { display: none; }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+  button {
+    font: inherit;
+    font-weight: 600;
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+    padding: 0.5rem 1.125rem;
+    border-radius: 0.375rem;
+    border: 2px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    cursor: pointer;
+  }
+  button.primary { background: var(--primary); border-color: var(--primary); color: var(--primary-text); }
+  button.danger { background: var(--danger); border-color: var(--danger); color: var(--danger-text); }
+  button[aria-disabled="true"] {
+    background: var(--disabled-bg);
+    border-color: var(--disabled-bg);
+    color: var(--disabled-text);
+    cursor: not-allowed;
+  }
+
+  :focus { outline: none; }
+  :focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+  textarea:focus-visible, .log:focus-visible { outline-offset: 1px; }
+
+  @media (forced-colors: active) {
+    button, textarea, .message, .log, .status-bar { border: 1px solid CanvasText; }
+    button[aria-disabled="true"] { color: GrayText; border-color: GrayText; }
+    :focus-visible { outline: 3px solid Highlight; }
+    .status-dot { forced-color-adjust: none; border-color: CanvasText; background: Canvas; }
+    .status-bar[data-state="generating"] .status-dot,
+    .status-bar[data-state="finished"] .status-dot,
+    .status-bar[data-state="error"] .status-dot { background: CanvasText; }
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#prompt">Skip to message box</a>
+
+<div class="app">
+  <header>
+    <h1>Chat assistant</h1>
+  </header>
+
+  <main>
+    <div class="status-bar" id="status-bar" data-state="idle">
+      <span class="status-dot" aria-hidden="true"></span>
+      <span><span class="visually-hidden">Assistant status: </span><span id="status-text" role="status" aria-live="polite" aria-atomic="true">Ready</span></span>
+    </div>
+
+    <div id="error-banner" class="error-banner" role="alert" aria-atomic="true"></div>
+
+    <section class="log-section" aria-labelledby="conversation-heading">
+      <h2 id="conversation-heading">Conversation</h2>
+      <div class="log" id="log" tabindex="0" role="region" aria-label="Conversation history">
+        <p class="empty-note" id="empty-note">No messages yet. Type a message below to start.</p>
+        <ol class="messages" id="messages" aria-label="Messages"></ol>
+      </div>
+    </section>
+
+    <section class="composer" aria-labelledby="composer-heading">
+      <h2 id="composer-heading" class="visually-hidden">Send a message</h2>
+      <form id="chat-form" novalidate>
+        <label for="prompt">Your message</label>
+        <p class="hint" id="prompt-hint">Press Enter to send. Press Shift and Enter for a new line. Press Escape to stop an answer that is being generated.</p>
+        <textarea id="prompt" name="prompt" rows="3" aria-describedby="prompt-hint prompt-error" autocomplete="off"></textarea>
+        <p class="field-error" id="prompt-error" aria-live="polite"></p>
+        <div class="actions">
+          <button type="submit" id="send" class="primary">Send</button>
+          <button type="button" id="stop" class="danger" aria-disabled="true">Stop</button>
+          <button type="button" id="regenerate" aria-disabled="true">Regenerate</button>
+        </div>
+      </form>
+    </section>
+
+    <div id="answer-announcer" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
+  </main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var form = document.getElementById('chat-form');
+  var promptEl = document.getElementById('prompt');
+  var promptError = document.getElementById('prompt-error');
+  var sendBtn = document.getElementById('send');
+  var stopBtn = document.getElementById('stop');
+  var regenBtn = document.getElementById('regenerate');
+  var logEl = document.getElementById('log');
+  var listEl = document.getElementById('messages');
+  var emptyNote = document.getElementById('empty-note');
+  var statusBar = document.getElementById('status-bar');
+  var statusText = document.getElementById('status-text');
+  var errorBanner = document.getElementById('error-banner');
+  var answerAnnouncer = document.getElementById('answer-announcer');
+
+  var state = {
+    messages: [],     // { role, content, status, el, textEl, metaEl }
+    generating: false,
+    runId: 0,
+    handle: null,
+    current: null
+  };
+
+  /* ---------- Announcements ---------- */
+  var timers = new WeakMap();
+  function setLiveText(el, text) {
+    clearTimeout(timers.get(el));
+    el.textContent = '';
+    timers.set(el, setTimeout(function () { el.textContent = text; }, 120));
+  }
+
+  var STATUS_LABELS = {
+    idle: 'Ready',
+    generating: 'Assistant is generating an answer…',
+    stopped: 'Stopped. The partial answer was kept.',
+    finished: 'Finished. The answer is complete.',
+    error: 'Error. The answer could not be completed.'
+  };
+  function setStatus(kind, customText) {
+    statusBar.setAttribute('data-state', kind);
+    setLiveText(statusText, customText || STATUS_LABELS[kind]);
+  }
+
+  function showError(text) { setLiveText(errorBanner, text); }
+  function clearError() { clearTimeout(timers.get(errorBanner)); errorBanner.textContent = ''; }
+
+  function showFieldError(text) {
+    promptEl.setAttribute('aria-invalid', 'true');
+    setLiveText(promptError, text);
+  }
+  function clearFieldError() {
+    promptEl.removeAttribute('aria-invalid');
+    clearTimeout(timers.get(promptError));
+    promptError.textContent = '';
+  }
+
+  /* ---------- Rendering ---------- */
+  function isNearBottom() {
+    return logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 48;
+  }
+  function scrollToBottom() { logEl.scrollTop = logEl.scrollHeight; }
+
+  var META_TEXT = {
+    complete: '',
+    streaming: '(generating…)',
+    stopped: '(stopped — partial answer)',
+    error: '(error — answer incomplete)'
+  };
+
+  function renderMessage(msg) {
+    var stick = isNearBottom();
+    msg.el.className = 'message ' + msg.role + ' state-' + msg.status;
+    msg.metaEl.textContent = msg.role === 'assistant' ? META_TEXT[msg.status] : '';
+    if (msg.status === 'streaming') {
+      msg.el.setAttribute('aria-busy', 'true');
+    } else {
+      msg.el.removeAttribute('aria-busy');
+    }
+    if (msg.content) {
+      msg.textEl.textContent = msg.content;
+      msg.textEl.classList.remove('placeholder');
+    } else {
+      var placeholder = {
+        streaming: 'Waiting for the first words…',
+        stopped: 'No text was received before stopping.',
+        error: 'No text was received.',
+        complete: 'The assistant returned an empty answer.'
+      };
+      msg.textEl.textContent = msg.role === 'assistant' ? placeholder[msg.status] : '';
+      msg.textEl.classList.add('placeholder');
+    }
+    if (stick) scrollToBottom();
+  }
+
+  function addMessage(role, content, status) {
+    var li = document.createElement('li');
+    var h3 = document.createElement('h3');
+    var who = document.createElement('span');
+    who.textContent = role === 'user' ? 'You' : 'Assistant';
+    var meta = document.createElement('span');
+    meta.className = 'meta';
+    h3.appendChild(who);
+    h3.appendChild(meta);
+    var p = document.createElement('p');
+    p.className = 'text';
+    li.appendChild(h3);
+    li.appendChild(p);
+
+    var msg = { role: role, content: content, status: status, el: li, textEl: p, metaEl: meta };
+    state.messages.push(msg);
+    listEl.appendChild(li);
+    emptyNote.hidden = true;
+    var stick = true;
+    renderMessage(msg);
+    if (stick) scrollToBottom();
+    return msg;
+  }
+
+  function removeMessagesAfter(index) {
+    var removed = state.messages.splice(index + 1);
+    removed.forEach(function (m) { if (m.el.parentNode) m.el.parentNode.removeChild(m.el); });
+    emptyNote.hidden = state.messages.length > 0;
+  }
+
+  function lastUserIndex() {
+    for (var i = state.messages.length - 1; i >= 0; i--) {
+      if (state.messages[i].role === 'user') return i;
+    }
+    return -1;
+  }
+
+  function updateControls() {
+    sendBtn.setAttribute('aria-disabled', String(state.generating));
+    stopBtn.setAttribute('aria-disabled', String(!state.generating));
+    regenBtn.setAttribute('aria-disabled', String(state.generating || lastUserIndex() === -1));
+  }
+
+  /* ---------- History sent to the API ---------- */
+  function buildHistory() {
+    var out = [];
+    state.messages.forEach(function (m) {
+      if (m.role === 'user') {
+        out.push({ role: 'user', content: m.content });
+      } else if (m.content && (m.status === 'complete' || m.status === 'stopped')) {
+        out.push({ role: 'assistant', content: m.content });
+      }
+    });
+    return out;
+  }
+
+  /* ---------- Streaming ---------- */
+  function finish(msg, status, errorText) {
+    state.generating = false;
+    state.handle = null;
+    state.current = null;
+    msg.status = status;
+    renderMessage(msg);
+    updateControls();
+
+    if (status === 'complete') {
+      setStatus('finished');
+      setLiveText(answerAnnouncer, msg.content ? 'Assistant answered: ' + msg.content : 'The assistant returned an empty answer.');
+    } else if (status === 'stopped') {
+      setStatus('stopped');
+    } else if (status === 'error') {
+      setStatus('error');
+      showError('Error: ' + errorText + ' You can press Regenerate to try again.');
+    }
+  }
+
+  function describeError(err) {
+    if (!err) return 'Unknown error.';
+    if (typeof err === 'string') return err;
+    if (err.message) return String(err.message);
+    try { return String(err); } catch (e) { return 'Unknown error.'; }
+  }
+
+  function startGeneration() {
+    clearError();
+    var history = buildHistory();
+    var runId = ++state.runId;
+    var msg = addMessage('assistant', '', 'streaming');
+    state.generating = true;
+    state.current = msg;
+    updateControls();
+    setStatus('generating');
+
+    function isActive() { return runId === state.runId && state.generating && state.current === msg; }
+
+    if (!window.ChatSDK || typeof window.ChatSDK.streamChat !== 'function') {
+      finish(msg, 'error', 'The chat service is not available.');
+      return;
+    }
+
+    try {
+      var handle = window.ChatSDK.streamChat(history, {
+        onToken: function (text) {
+          if (!isActive()) return; // ignores late tokens after stop
+          if (text === undefined || text === null) return;
+          msg.content += String(text);
+          renderMessage(msg);
+        },
+        onDone: function () {
+          if (!isActive()) return;
+          finish(msg, 'complete');
+        },
+        onError: function (err) {
+          if (!isActive()) return;
+          finish(msg, 'error', describeError(err));
+        }
+      });
+      if (isActive()) state.handle = handle;
+    } catch (err) {
+      if (isActive()) finish(msg, 'error', describeError(err));
+    }
+  }
+
+  function stopGeneration() {
+    if (!state.generating || !state.current) return;
+    var handle = state.handle;
+    var msg = state.current;
+    state.runId++; // invalidate any in-flight callbacks
+    finish(msg, 'stopped');
+    if (handle && typeof handle.abort === 'function') {
+      try { handle.abort(); } catch (e) { /* ignore */ }
+    }
+  }
+
+  /* ---------- Actions ---------- */
+  function send() {
+    if (state.generating) {
+      showFieldError('An answer is still being generated. Wait for it to finish or press Stop first.');
+      return;
+    }
+    var text = promptEl.value.trim();
+    if (!text) {
+      showFieldError('Type a message before sending.');
+      promptEl.focus();
+      return;
+    }
+    clearFieldError();
+    addMessage('user', text, 'complete');
+    promptEl.value = '';
+    startGeneration();
+  }
+
+  function regenerate() {
+    if (state.generating) return;
+    var idx = lastUserIndex();
+    if (idx === -1) {
+      showFieldError('There is no message to regenerate an answer for yet.');
+      return;
+    }
+    clearFieldError();
+    removeMessagesAfter(idx);
+    startGeneration();
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    send();
+  });
+
+  // aria-disabled buttons stay focusable; ignore activation while disabled.
+  sendBtn.addEventListener('click', function (e) {
+    if (sendBtn.getAttribute('aria-disabled') === 'true') {
+      e.preventDefault();
+      showFieldError('An answer is still being generated. Wait for it to finish or press Stop first.');
+    }
+  });
+  stopBtn.addEventListener('click', function () {
+    if (stopBtn.getAttribute('aria-disabled') === 'true') return;
+    stopGeneration();
+  });
+  regenBtn.addEventListener('click', function () {
+    if (regenBtn.getAttribute('aria-disabled') === 'true') return;
+    regenerate();
+  });
+
+  promptEl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !e.altKey && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      send();
+    }
+  });
+  promptEl.addEventListener('input', function () {
+    if (promptEl.getAttribute('aria-invalid') === 'true') clearFieldError();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && state.generating) {
+      e.preventDefault();
+      stopGeneration();
+    }
+  });
+
+  updateControls();
+})();
+</script>
+</body>
+</html>
+```

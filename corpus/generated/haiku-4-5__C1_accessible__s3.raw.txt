@@ -1,0 +1,573 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Assistant</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #ffffff;
+      color: #1a1a1a;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+
+    #chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      max-width: 900px;
+      width: 100%;
+      margin: 0 auto;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    }
+
+    header {
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-bottom: 1px solid #e5e5e5;
+    }
+
+    header h1 {
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .message {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 8px;
+      animation: fadeIn 0.3s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .message.user {
+      justify-content: flex-end;
+    }
+
+    .message-content {
+      max-width: 70%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+      line-height: 1.5;
+    }
+
+    .message.user .message-content {
+      background-color: #667eea;
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message.assistant .message-content {
+      background-color: #f0f0f0;
+      color: #1a1a1a;
+      border-bottom-left-radius: 4px;
+    }
+
+    .message-badge {
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      align-self: center;
+    }
+
+    .message.user .message-badge {
+      background-color: #667eea;
+      color: white;
+    }
+
+    .message.assistant .message-badge {
+      background-color: #e0e0e0;
+      color: #666;
+    }
+
+    .status-indicator {
+      display: inline-block;
+      margin-left: 8px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .status-generating {
+      color: #667eea;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    .status-stopped {
+      color: #ff9800;
+    }
+
+    .status-error {
+      color: #f44336;
+    }
+
+    .status-done {
+      color: #4caf50;
+    }
+
+    #input-section {
+      padding: 20px;
+      border-top: 1px solid #e5e5e5;
+      background-color: #fafafa;
+    }
+
+    #input-wrapper {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    #prompt {
+      flex: 1;
+      padding: 12px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 16px;
+      font-family: inherit;
+      resize: none;
+      max-height: 120px;
+      line-height: 1.5;
+      transition: border-color 0.2s;
+    }
+
+    #prompt:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    #prompt:disabled {
+      background-color: #f5f5f5;
+      color: #999;
+      cursor: not-allowed;
+    }
+
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    #send {
+      background-color: #667eea;
+      color: white;
+      min-width: 100px;
+    }
+
+    #send:hover:not(:disabled) {
+      background-color: #5568d3;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    #send:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    #send:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+      color: #999;
+    }
+
+    #stop, #regenerate {
+      background-color: #f5f5f5;
+      color: #1a1a1a;
+      border: 2px solid #e0e0e0;
+      min-width: 100px;
+      display: none;
+    }
+
+    #stop.visible, #regenerate.visible {
+      display: block;
+    }
+
+    #stop:hover {
+      background-color: #ff9800;
+      color: white;
+      border-color: #ff9800;
+    }
+
+    #stop:active {
+      transform: scale(0.98);
+    }
+
+    #regenerate:hover:not(:disabled) {
+      background-color: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+
+    #regenerate:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    #regenerate:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    #button-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border-width: 0;
+    }
+
+    .error-message {
+      background-color: #ffebee;
+      border-left: 4px solid #f44336;
+      padding: 12px 16px;
+      border-radius: 4px;
+      color: #c62828;
+      font-size: 14px;
+    }
+
+    #empty-state {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: #999;
+      text-align: center;
+      font-size: 16px;
+    }
+
+    #empty-state.hidden {
+      display: none;
+    }
+
+    @media (max-width: 600px) {
+      .message-content {
+        max-width: 90%;
+      }
+
+      #chat-container {
+        max-width: 100%;
+      }
+
+      button {
+        padding: 10px 16px;
+        font-size: 13px;
+      }
+
+      #input-wrapper {
+        flex-direction: column;
+      }
+
+      #button-group {
+        flex-direction: column;
+      }
+
+      header h1 {
+        font-size: 20px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="chat-container">
+    <header>
+      <h1>Chat Assistant</h1>
+    </header>
+
+    <main>
+      <div id="messages" role="log" aria-label="Chat conversation" aria-live="polite">
+        <div id="empty-state">Start a conversation by typing a message below.</div>
+      </div>
+    </main>
+
+    <section id="input-section" aria-label="Message input">
+      <div id="input-wrapper">
+        <textarea
+          id="prompt"
+          placeholder="Type your message here... (Shift+Enter for new line, Enter to send)"
+          aria-label="Message input"
+          rows="1"
+        ></textarea>
+        <button id="send" aria-label="Send message">Send</button>
+      </div>
+      <div id="button-group">
+        <button id="stop" aria-label="Stop generating response">Stop</button>
+        <button id="regenerate" aria-label="Regenerate response to last message">Regenerate</button>
+      </div>
+      <div id="sr-status" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
+    </section>
+  </div>
+
+  <script>
+    class ChatUI {
+      constructor() {
+        this.messagesContainer = document.getElementById('messages');
+        this.promptInput = document.getElementById('prompt');
+        this.sendButton = document.getElementById('send');
+        this.stopButton = document.getElementById('stop');
+        this.regenerateButton = document.getElementById('regenerate');
+        this.emptyState = document.getElementById('empty-state');
+        this.srStatus = document.getElementById('sr-status');
+
+        this.messages = [];
+        this.isStreaming = false;
+        this.currentStreamHandle = null;
+        this.lastUserMessage = null;
+
+        this.setupEventListeners();
+        this.setupAutoResize();
+      }
+
+      setupEventListeners() {
+        this.sendButton.addEventListener('click', () => this.sendMessage());
+        this.promptInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            this.sendMessage();
+          }
+        });
+        this.stopButton.addEventListener('click', () => this.stopStreaming());
+        this.regenerateButton.addEventListener('click', () => this.regenerateResponse());
+      }
+
+      setupAutoResize() {
+        this.promptInput.addEventListener('input', () => {
+          this.promptInput.style.height = 'auto';
+          this.promptInput.style.height = Math.min(this.promptInput.scrollHeight, 120) + 'px';
+        });
+      }
+
+      async sendMessage() {
+        const content = this.promptInput.value.trim();
+        if (!content || this.isStreaming) return;
+
+        this.promptInput.value = '';
+        this.promptInput.style.height = 'auto';
+        this.updateInputState(true);
+        this.emptyState.classList.add('hidden');
+
+        // Add user message to conversation
+        this.messages.push({ role: 'user', content });
+        this.lastUserMessage = content;
+        this.renderMessage('user', content);
+        this.announceScreenReader(`User message: ${content}`);
+
+        // Request assistant response
+        await this.getAssistantResponse();
+      }
+
+      async getAssistantResponse() {
+        const assistantMessageIndex = this.messages.length;
+        this.messages.push({ role: 'assistant', content: '' });
+
+        const messageEl = this.renderMessage('assistant', '', true);
+        const contentEl = messageEl.querySelector('.message-content');
+        let fullContent = '';
+
+        const onToken = (text) => {
+          fullContent += text;
+          contentEl.textContent = fullContent;
+          this.messages[assistantMessageIndex].content = fullContent;
+          this.scrollToBottom();
+        };
+
+        const onDone = () => {
+          this.isStreaming = false;
+          this.updateInputState(false);
+          this.updateButtonVisibility();
+          this.addStatusIndicator(messageEl, 'done', 'Response complete');
+          this.announceScreenReader('Assistant response complete');
+        };
+
+        const onError = (error) => {
+          this.isStreaming = false;
+          this.updateInputState(false);
+          this.updateButtonVisibility();
+          this.addStatusIndicator(messageEl, 'error', `Error: ${error.message || 'Unknown error'}`);
+          this.announceScreenReader(`Error: ${error.message || 'Unknown error'}`);
+        };
+
+        this.isStreaming = true;
+        this.updateInputState(true);
+        this.updateButtonVisibility();
+        this.addStatusIndicator(messageEl, 'generating', 'Generating response');
+        this.announceScreenReader('Assistant is generating response');
+
+        this.currentStreamHandle = window.ChatSDK.streamChat(this.messages, {
+          onToken,
+          onDone,
+          onError,
+        });
+
+        this.scrollToBottom();
+      }
+
+      stopStreaming() {
+        if (this.currentStreamHandle) {
+          this.currentStreamHandle.abort();
+          this.isStreaming = false;
+          this.currentStreamHandle = null;
+
+          const messages = this.messagesContainer.querySelectorAll('.message.assistant');
+          const lastMessage = messages[messages.length - 1];
+          if (lastMessage) {
+            const statusEl = lastMessage.querySelector('.status-indicator');
+            if (statusEl) {
+              statusEl.innerHTML = '<span class="status-stopped">Stopped</span>';
+            }
+          }
+
+          this.updateInputState(false);
+          this.updateButtonVisibility();
+          this.announceScreenReader('Response generation stopped');
+        }
+      }
+
+      regenerateResponse() {
+        if (!this.lastUserMessage || this.isStreaming) return;
+
+        // Remove last assistant message if it exists
+        if (this.messages.length > 0 && this.messages[this.messages.length - 1].role === 'assistant') {
+          this.messages.pop();
+          const lastMsg = this.messagesContainer.querySelector('.message.assistant:last-child');
+          if (lastMsg) {
+            lastMsg.remove();
+          }
+        }
+
+        this.getAssistantResponse();
+      }
+
+      renderMessage(role, content, isStreaming = false) {
+        const messageEl = document.createElement('div');
+        messageEl.className = `message ${role}`;
+
+        const badge = document.createElement('span');
+        badge.className = 'message-badge';
+        badge.setAttribute('aria-hidden', 'true');
+        badge.textContent = role === 'user' ? 'You' : 'Assistant';
+
+        const contentEl = document.createElement('div');
+        contentEl.className = 'message-content';
+        contentEl.textContent = content || '';
+
+        messageEl.appendChild(badge);
+        messageEl.appendChild(contentEl);
+
+        if (isStreaming) {
+          const statusEl = document.createElement('span');
+          statusEl.className = 'status-indicator';
+          messageEl.appendChild(statusEl);
+        }
+
+        this.messagesContainer.appendChild(messageEl);
+        return messageEl;
+      }
+
+      addStatusIndicator(messageEl, status, label) {
+        let statusEl = messageEl.querySelector('.status-indicator');
+        if (!statusEl) {
+          statusEl = document.createElement('span');
+          statusEl.className = 'status-indicator';
+          messageEl.appendChild(statusEl);
+        }
+
+        const statusClass = `status-${status}`;
+        statusEl.className = `status-indicator ${statusClass}`;
+        statusEl.innerHTML = '';
+
+        const span = document.createElement('span');
+        span.className = statusClass;
+        span.textContent = label;
+        statusEl.appendChild(span);
+      }
+
+      updateInputState(disabled) {
+        this.promptInput.disabled = disabled;
+        this.sendButton.disabled = disabled;
+      }
+
+      updateButtonVisibility() {
+        this.stopButton.classList.toggle('visible', this.isStreaming);
+        this.regenerateButton.classList.toggle('visible', !this.isStreaming && this.messages.length > 0);
+      }
+
+      scrollToBottom() {
+        this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+      }
+
+      announceScreenReader(message) {
+        this.srStatus.textContent = message;
+      }
+    }
+
+    // Initialize chat UI when DOM is ready
+    document.addEventListener('DOMContentLoaded', () => {
+      new ChatUI();
+    });
+  </script>
+</body>
+</html>
+```

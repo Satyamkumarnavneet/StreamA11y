@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            color: #333;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 800px;
+            height: 100vh;
+            max-height: 90vh;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            background: #f8f9fa;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            line-height: 1.5;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+
+        .message.user .message-content {
+            background: #667eea;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant .message-content {
+            background: #e8eef7;
+            color: #333;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-role {
+            font-weight: 600;
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .user .message-role {
+            text-align: right;
+        }
+
+        .status {
+            align-self: center;
+            font-size: 14px;
+            color: #666;
+            padding: 8px 16px;
+            background: #f0f0f0;
+            border-radius: 20px;
+            margin: 8px 0;
+            display: none;
+        }
+
+        .status.show {
+            display: block;
+        }
+
+        .status.generating::after {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 4px;
+            background: #667eea;
+            border-radius: 50%;
+            margin-left: 6px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .footer {
+            padding: 16px 20px;
+            border-top: 1px solid #e0e0e0;
+            background: #f8f9fa;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        #prompt {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #d0d0d0;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: none;
+            min-height: 44px;
+            max-height: 100px;
+        }
+
+        #prompt:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+
+        #send {
+            background: #667eea;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        #send:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        #send:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        #send:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        #stop {
+            background: #ff6b6b;
+            color: white;
+            flex: 1;
+        }
+
+        #stop:hover:not(:disabled) {
+            background: #e63946;
+        }
+
+        #stop:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        #regenerate {
+            background: #4ecdc4;
+            color: white;
+            flex: 1;
+        }
+
+        #regenerate:hover:not(:disabled) {
+            background: #45b8af;
+        }
+
+        #regenerate:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .button-secondary-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #999;
+            text-align: center;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state p {
+            font-size: 16px;
+        }
+
+        @media (max-width: 600px) {
+            .message-content {
+                max-width: 90%;
+            }
+
+            button {
+                font-size: 13px;
+                padding: 8px 12px;
+            }
+
+            .header {
+                padding: 16px;
+            }
+
+            .header h1 {
+                font-size: 18px;
+            }
+        }
+
+        /* Screen reader only class */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        .visually-hidden {
+            position: absolute;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            width: 1px;
+            height: 1px;
+            margin: -1px;
+            padding: 0;
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Chat Assistant</h1>
+        </div>
+
+        <div class="messages" id="messages" role="log" aria-label="Conversation history" aria-live="polite">
+            <div class="empty-state" id="emptyState">
+                <div class="empty-state-icon">💬</div>
+                <p>Start a conversation by typing a message below.</p>
+            </div>
+        </div>
+
+        <div class="status" id="status" role="status" aria-live="assertive" aria-atomic="true"></div>
+
+        <div class="footer">
+            <div class="input-group">
+                <textarea
+                    id="prompt"
+                    placeholder="Type your message here..."
+                    aria-label="Message input"
+                ></textarea>
+                <button id="send" aria-label="Send message">Send</button>
+            </div>
+            <div class="button-secondary-group">
+                <button id="stop" disabled aria-label="Stop generating">Stop</button>
+                <button id="regenerate" disabled aria-label="Regenerate last response">Regenerate</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State management
+        const state = {
+            messages: [],
+            currentHandle: null,
+            isGenerating: false,
+            lastUserMessageIndex: null
+        };
+
+        // DOM elements
+        const promptInput = document.getElementById('prompt');
+        const sendButton = document.getElementById('send');
+        const stopButton = document.getElementById('stop');
+        const regenerateButton = document.getElementById('regenerate');
+        const messagesContainer = document.getElementById('messages');
+        const statusElement = document.getElementById('status');
+        const emptyState = document.getElementById('emptyState');
+
+        // Utility functions
+        function showStatus(message, type = 'info') {
+            statusElement.textContent = message;
+            statusElement.className = `status show ${type}`;
+        }
+
+        function hideStatus() {
+            statusElement.className = 'status';
+        }
+
+        function updateButtonStates() {
+            const hasMessages = state.messages.length > 0;
+            const canSend = promptInput.value.trim().length > 0 && !state.isGenerating;
+
+            sendButton.disabled = !canSend;
+            stopButton.disabled = !state.isGenerating;
+            regenerateButton.disabled = state.isGenerating || state.lastUserMessageIndex === null;
+        }
+
+        function addMessageToDOM(role, content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+
+            const roleLabel = document.createElement('div');
+            roleLabel.className = 'message-role';
+            roleLabel.textContent = role === 'user' ? 'You' : 'Assistant';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = content;
+
+            messageDiv.appendChild(roleLabel);
+            messageDiv.appendChild(contentDiv);
+            messagesContainer.appendChild(messageDiv);
+
+            // Remove empty state if present
+            if (emptyState.parentNode) {
+                emptyState.remove();
+            }
+
+            // Scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            return contentDiv;
+        }
+
+        function findOrCreateLastAssistantMessage() {
+            const messages = messagesContainer.querySelectorAll('.message.assistant');
+            if (messages.length > 0) {
+                const lastAssistant = messages[messages.length - 1];
+                return lastAssistant.querySelector('.message-content');
+            }
+            return null;
+        }
+
+        async function sendMessage() {
+            const text = promptInput.value.trim();
+            if (!text || state.isGenerating) return;
+
+            // Add user message to state and DOM
+            state.messages.push({ role: 'user', content: text });
+            state.lastUserMessageIndex = state.messages.length - 1;
+            addMessageToDOM('user', text);
+
+            promptInput.value = '';
+            updateButtonStates();
+
+            // Stream assistant response
+            await streamAssistantResponse();
+        }
+
+        async function streamAssistantResponse() {
+            state.isGenerating = true;
+            updateButtonStates();
+            showStatus('Assistant is generating...', 'generating');
+
+            // Add empty assistant message
+            state.messages.push({ role: 'assistant', content: '' });
+            const contentElement = addMessageToDOM('assistant', '');
+
+            let currentContent = '';
+
+            const onToken = (text) => {
+                currentContent += text;
+                state.messages[state.messages.length - 1].content = currentContent;
+                contentElement.textContent = currentContent;
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            };
+
+            const onDone = () => {
+                state.isGenerating = false;
+                state.currentHandle = null;
+                updateButtonStates();
+                showStatus('Response complete', 'success');
+                setTimeout(hideStatus, 3000);
+            };
+
+            const onError = (error) => {
+                state.isGenerating = false;
+                state.currentHandle = null;
+                updateButtonStates();
+                const errorMessage = error.message || 'An error occurred while generating the response';
+                showStatus(`Error: ${errorMessage}`, 'error');
+            };
+
+            try {
+                state.currentHandle = window.ChatSDK.streamChat(state.messages, {
+                    onToken,
+                    onDone,
+                    onError
+                });
+            } catch (error) {
+                onError(error);
+            }
+        }
+
+        function stopGeneration() {
+            if (state.currentHandle) {
+                state.currentHandle.abort();
+                state.isGenerating = false;
+                state.currentHandle = null;
+                updateButtonStates();
+                showStatus('Response stopped', 'info');
+                setTimeout(hideStatus, 3000);
+            }
+        }
+
+        function regenerateResponse() {
+            if (state.lastUserMessageIndex === null || state.isGenerating) return;
+
+            // Remove the last assistant message if it exists
+            if (state.messages[state.messages.length - 1].role === 'assistant') {
+                state.messages.pop();
+            }
+
+            // Remove last assistant message from DOM
+            const assistantMessages = messagesContainer.querySelectorAll('.message.assistant');
+            if (assistantMessages.length > 0) {
+                assistantMessages[assistantMessages.length - 1].remove();
+            }
+
+            // Stream new response
+            streamAssistantResponse();
+        }
+
+        // Event listeners
+        sendButton.addEventListener('click', sendMessage);
+        stopButton.addEventListener('click', stopGeneration);
+        regenerateButton.addEventListener('click', regenerateResponse);
+
+        promptInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        promptInput.addEventListener('input', updateButtonStates);
+
+        // Initialize button states
+        updateButtonStates();
+
+        // Focus management for accessibility
+        promptInput.focus();
+    </script>
+</body>
+</html>

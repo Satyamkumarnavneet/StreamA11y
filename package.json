@@ -1,0 +1,31 @@
+{
+  "name": "streama11y",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "python3 analysis/validate_release.py",
+    "fixtures": "python3 fixtures/make_variants.py",
+    "replay:assessments": "node analysis/replay_assessments.js",
+    "analyze": "python3 analysis/analyze.py --out results/recomputed",
+    "jsdom:fixtures": "bash harness/batch.sh fixtures/variants results/recomputed/variants",
+    "jsdom:corpus": "bash harness/batch.sh corpus/generated results/recomputed/corpus",
+    "jsdom:repairs": "bash harness/batch.sh corpus/repaired results/recomputed/repaired",
+    "parity": "node harness/parity_test.js fixtures/variants/*.html",
+    "browser:fixtures": "node harness/browser.js --in=fixtures/variants --out=results/recomputed/browser-fixtures",
+    "browser:corpus": "node harness/browser.js --in=corpus/generated --out=results/recomputed/browser",
+    "browser:repairs": "node harness/browser.js --in=corpus/repaired --out=results/recomputed/browser-repaired",
+    "browser:contrast": "node harness/browser.js --in=corpus/generated --out=results/recomputed/browser-contrast --contrast",
+    "browser:compare": "python3 analysis/browser_compare.py results/recomputed/browser results/recomputed/corpus --out results/recomputed/browser_summary.json"
+  },
+  "license": "MIT",
+  "description": "Benchmark and dataset for lifecycle accessibility of streaming chat interfaces",
+  "dependencies": {
+    "axe-core": "4.10.3",
+    "dom-accessibility-api": "0.7.0",
+    "jsdom": "25.0.1",
+    "playwright": "1.65.0"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  }
+}

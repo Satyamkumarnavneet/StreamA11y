@@ -1,0 +1,3137 @@
+{
+ "fixtures": {
+  "n": 11,
+  "exact_matches": 11,
+  "rows": [
+   {
+    "variant": "busy-stuck",
+    "expected": [
+     "busy-stuck"
+    ],
+    "observed": [
+     "busy-stuck"
+    ],
+    "exact": true,
+    "axe_wcag": [],
+    "A": 0.0
+   },
+   {
+    "variant": "discard-partial",
+    "expected": [
+     "partial-lost"
+    ],
+    "observed": [
+     "partial-lost"
+    ],
+    "exact": true,
+    "axe_wcag": [],
+    "A": 0.0
+   },
+   {
+    "variant": "focus-drop",
+    "expected": [
+     "focus-lost"
+    ],
+    "observed": [
+     "focus-lost"
+    ],
+    "exact": true,
+    "axe_wcag": [],
+    "A": 0.0
+   },
+   {
+    "variant": "focus-steal",
+    "expected": [
+     "focus-lost"
+    ],
+    "observed": [
+     "focus-lost"
+    ],
+    "exact": true,
+    "axe_wcag": [],
+    "A": 0.0
+   },
+   {
+    "variant": "no-start-status",
+    "expected": [
+     "silent-start"
+    ],
+    "observed": [
+     "silent-start"
+    ],
+    "exact": true,
+    "axe_wcag": [],
+    "A": 0.0
+   },
+   {
+    "variant": "no-terminal-status",
+    "expected": [
+     "silent-terminal"
+    ],
+    "observed": [
+     "silent-terminal"
+    ],
+    "exact": true,
+    "axe_wcag": [],
+    "A": 0.0
+   },
+   {
+    "variant": "reference",
+    "expected": [],
+    "observed": [],
+    "exact": true,
+    "axe_wcag": [],
+    "A": 0.0
+   },
+   {
+    "variant": "stale-leak",
+    "expected": [
+     "stale-leak"
+    ],
+    "observed": [
+     "stale-leak"
+    ],
+    "exact": true,
+    "axe_wcag": [],
+    "A": 0.0
+   },
+   {
+    "variant": "stop-unreachable",
+    "expected": [
+     "stop-unreachable"
+    ],
+    "observed": [
+     "stop-unreachable"
+    ],
+    "exact": true,
+    "axe_wcag": [],
+    "A": 0.0
+   },
+   {
+    "variant": "token-live",
+    "expected": [
+     "announcement-overload"
+    ],
+    "observed": [
+     "announcement-overload"
+    ],
+    "exact": true,
+    "axe_wcag": [],
+    "A": 6.02020202020202
+   },
+   {
+    "variant": "unlabeled-input",
+    "expected": [],
+    "observed": [],
+    "exact": true,
+    "axe_wcag": [
+     "label"
+    ],
+    "A": 0.0
+   }
+  ],
+  "lifecycle_faults_flagged_by_axe": 0
+ },
+ "corpus_generation": {
+  "requested": 90,
+  "ok": 90,
+  "output_tokens_median": 7038.5,
+  "html_chars_median": 13655.5,
+  "models": [
+   "claude-haiku-4-5-20251001",
+   "claude-haiku-5-5",
+   "claude-opus-4-5-20251101",
+   "claude-opus-5-5",
+   "claude-sonnet-5-5"
+  ],
+  "excluded_model": "claude-sonnet-4-5-20250929 (API returned a safety-filter refusal on both pilot attempts; no output)"
+ },
+ "corpus_incompatible": [
+  {
+   "id": "opus-4-5__C1_accessible__s0",
+   "notes": [
+    "send did not call ChatSDK.streamChat"
+   ]
+  }
+ ],
+ "corpus_n_assessed": 89,
+ "functional": {
+  "regenerate_broken": 5,
+  "stop_broken": 0,
+  "any_functional": 5,
+  "regenerate_broken_ids": [
+   "haiku-4-5__C0_plain__s4",
+   "haiku-4-5__C1_accessible__s1",
+   "haiku-4-5__C1_accessible__s2",
+   "haiku-4-5__C1_accessible__s5",
+   "haiku-4-5__C2_lifecycle__s5"
+  ],
+  "send_never_enabled_excluded": 1
+ },
+ "overall": {
+  "silent-start": {
+   "k": 13,
+   "n": 89,
+   "p": 0.1461,
+   "ci95": [
+    0.0874,
+    0.234
+   ]
+  },
+  "silent-terminal": {
+   "k": 12,
+   "n": 89,
+   "p": 0.1348,
+   "ci95": [
+    0.0788,
+    0.221
+   ]
+  },
+  "announcement-overload": {
+   "k": 14,
+   "n": 89,
+   "p": 0.1573,
+   "ci95": [
+    0.0961,
+    0.2469
+   ]
+  },
+  "focus-lost": {
+   "k": 53,
+   "n": 89,
+   "p": 0.5955,
+   "ci95": [
+    0.4916,
+    0.6915
+   ]
+  },
+  "stop-unreachable": {
+   "k": 0,
+   "n": 89,
+   "p": 0.0,
+   "ci95": [
+    0.0,
+    0.0414
+   ]
+  },
+  "partial-lost": {
+   "k": 2,
+   "n": 89,
+   "p": 0.0225,
+   "ci95": [
+    0.0062,
+    0.0783
+   ]
+  },
+  "stale-leak": {
+   "k": 17,
+   "n": 89,
+   "p": 0.191,
+   "ci95": [
+    0.1228,
+    0.2848
+   ]
+  },
+  "busy-stuck": {
+   "k": 0,
+   "n": 89,
+   "p": 0.0,
+   "ci95": [
+    0.0,
+    0.0414
+   ]
+  },
+  "any": {
+   "k": 53,
+   "n": 89,
+   "p": 0.5955,
+   "ci95": [
+    0.4916,
+    0.6915
+   ]
+  },
+  "any_lenient": {
+   "k": 32,
+   "n": 89,
+   "p": 0.3596,
+   "ci95": [
+    0.2676,
+    0.4631
+   ]
+  },
+  "focus-lost-lenient": {
+   "k": 8,
+   "n": 89,
+   "p": 0.0899,
+   "ci95": [
+    0.0463,
+    0.1675
+   ]
+  },
+  "axe_wcag_clean": {
+   "k": 89,
+   "n": 89,
+   "p": 1.0,
+   "ci95": [
+    0.9586,
+    1.0
+   ]
+  }
+ },
+ "by_condition": {
+  "C0_plain": {
+   "silent-start": {
+    "k": 12,
+    "n": 30,
+    "p": 0.4,
+    "ci95": [
+     0.2459,
+     0.5768
+    ]
+   },
+   "silent-terminal": {
+    "k": 12,
+    "n": 30,
+    "p": 0.4,
+    "ci95": [
+     0.2459,
+     0.5768
+    ]
+   },
+   "announcement-overload": {
+    "k": 4,
+    "n": 30,
+    "p": 0.1333,
+    "ci95": [
+     0.0531,
+     0.2968
+    ]
+   },
+   "focus-lost": {
+    "k": 30,
+    "n": 30,
+    "p": 1.0,
+    "ci95": [
+     0.8865,
+     1.0
+    ]
+   },
+   "stop-unreachable": {
+    "k": 0,
+    "n": 30,
+    "p": 0.0,
+    "ci95": [
+     -0.0,
+     0.1135
+    ]
+   },
+   "partial-lost": {
+    "k": 0,
+    "n": 30,
+    "p": 0.0,
+    "ci95": [
+     -0.0,
+     0.1135
+    ]
+   },
+   "stale-leak": {
+    "k": 7,
+    "n": 30,
+    "p": 0.2333,
+    "ci95": [
+     0.1179,
+     0.4093
+    ]
+   },
+   "busy-stuck": {
+    "k": 0,
+    "n": 30,
+    "p": 0.0,
+    "ci95": [
+     -0.0,
+     0.1135
+    ]
+   },
+   "any": {
+    "k": 30,
+    "n": 30,
+    "p": 1.0,
+    "ci95": [
+     0.8865,
+     1.0
+    ]
+   },
+   "any_lenient": {
+    "k": 16,
+    "n": 30,
+    "p": 0.5333,
+    "ci95": [
+     0.3614,
+     0.6977
+    ]
+   },
+   "focus-lost-lenient": {
+    "k": 4,
+    "n": 30,
+    "p": 0.1333,
+    "ci95": [
+     0.0531,
+     0.2968
+    ]
+   },
+   "axe_wcag_clean": {
+    "k": 30,
+    "n": 30,
+    "p": 1.0,
+    "ci95": [
+     0.8865,
+     1.0
+    ]
+   }
+  },
+  "C1_accessible": {
+   "silent-start": {
+    "k": 1,
+    "n": 29,
+    "p": 0.0345,
+    "ci95": [
+     0.0061,
+     0.1718
+    ]
+   },
+   "silent-terminal": {
+    "k": 0,
+    "n": 29,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.117
+    ]
+   },
+   "announcement-overload": {
+    "k": 9,
+    "n": 29,
+    "p": 0.3103,
+    "ci95": [
+     0.1728,
+     0.4923
+    ]
+   },
+   "focus-lost": {
+    "k": 11,
+    "n": 29,
+    "p": 0.3793,
+    "ci95": [
+     0.2269,
+     0.56
+    ]
+   },
+   "stop-unreachable": {
+    "k": 0,
+    "n": 29,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.117
+    ]
+   },
+   "partial-lost": {
+    "k": 1,
+    "n": 29,
+    "p": 0.0345,
+    "ci95": [
+     0.0061,
+     0.1718
+    ]
+   },
+   "stale-leak": {
+    "k": 7,
+    "n": 29,
+    "p": 0.2414,
+    "ci95": [
+     0.1222,
+     0.4211
+    ]
+   },
+   "busy-stuck": {
+    "k": 0,
+    "n": 29,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.117
+    ]
+   },
+   "any": {
+    "k": 11,
+    "n": 29,
+    "p": 0.3793,
+    "ci95": [
+     0.2269,
+     0.56
+    ]
+   },
+   "any_lenient": {
+    "k": 11,
+    "n": 29,
+    "p": 0.3793,
+    "ci95": [
+     0.2269,
+     0.56
+    ]
+   },
+   "focus-lost-lenient": {
+    "k": 1,
+    "n": 29,
+    "p": 0.0345,
+    "ci95": [
+     0.0061,
+     0.1718
+    ]
+   },
+   "axe_wcag_clean": {
+    "k": 29,
+    "n": 29,
+    "p": 1.0,
+    "ci95": [
+     0.883,
+     1.0
+    ]
+   }
+  },
+  "C2_lifecycle": {
+   "silent-start": {
+    "k": 0,
+    "n": 30,
+    "p": 0.0,
+    "ci95": [
+     -0.0,
+     0.1135
+    ]
+   },
+   "silent-terminal": {
+    "k": 0,
+    "n": 30,
+    "p": 0.0,
+    "ci95": [
+     -0.0,
+     0.1135
+    ]
+   },
+   "announcement-overload": {
+    "k": 1,
+    "n": 30,
+    "p": 0.0333,
+    "ci95": [
+     0.0059,
+     0.1667
+    ]
+   },
+   "focus-lost": {
+    "k": 12,
+    "n": 30,
+    "p": 0.4,
+    "ci95": [
+     0.2459,
+     0.5768
+    ]
+   },
+   "stop-unreachable": {
+    "k": 0,
+    "n": 30,
+    "p": 0.0,
+    "ci95": [
+     -0.0,
+     0.1135
+    ]
+   },
+   "partial-lost": {
+    "k": 1,
+    "n": 30,
+    "p": 0.0333,
+    "ci95": [
+     0.0059,
+     0.1667
+    ]
+   },
+   "stale-leak": {
+    "k": 3,
+    "n": 30,
+    "p": 0.1,
+    "ci95": [
+     0.0346,
+     0.2562
+    ]
+   },
+   "busy-stuck": {
+    "k": 0,
+    "n": 30,
+    "p": 0.0,
+    "ci95": [
+     -0.0,
+     0.1135
+    ]
+   },
+   "any": {
+    "k": 12,
+    "n": 30,
+    "p": 0.4,
+    "ci95": [
+     0.2459,
+     0.5768
+    ]
+   },
+   "any_lenient": {
+    "k": 5,
+    "n": 30,
+    "p": 0.1667,
+    "ci95": [
+     0.0734,
+     0.3356
+    ]
+   },
+   "focus-lost-lenient": {
+    "k": 3,
+    "n": 30,
+    "p": 0.1,
+    "ci95": [
+     0.0346,
+     0.2562
+    ]
+   },
+   "axe_wcag_clean": {
+    "k": 30,
+    "n": 30,
+    "p": 1.0,
+    "ci95": [
+     0.8865,
+     1.0
+    ]
+   }
+  }
+ },
+ "by_model": {
+  "haiku-4-5": {
+   "silent-start": {
+    "k": 7,
+    "n": 18,
+    "p": 0.3889,
+    "ci95": [
+     0.203,
+     0.6138
+    ]
+   },
+   "silent-terminal": {
+    "k": 6,
+    "n": 18,
+    "p": 0.3333,
+    "ci95": [
+     0.1628,
+     0.5625
+    ]
+   },
+   "announcement-overload": {
+    "k": 5,
+    "n": 18,
+    "p": 0.2778,
+    "ci95": [
+     0.125,
+     0.5087
+    ]
+   },
+   "focus-lost": {
+    "k": 18,
+    "n": 18,
+    "p": 1.0,
+    "ci95": [
+     0.8241,
+     1.0
+    ]
+   },
+   "stop-unreachable": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "partial-lost": {
+    "k": 2,
+    "n": 18,
+    "p": 0.1111,
+    "ci95": [
+     0.031,
+     0.328
+    ]
+   },
+   "stale-leak": {
+    "k": 9,
+    "n": 18,
+    "p": 0.5,
+    "ci95": [
+     0.2903,
+     0.7097
+    ]
+   },
+   "busy-stuck": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "any": {
+    "k": 18,
+    "n": 18,
+    "p": 1.0,
+    "ci95": [
+     0.8241,
+     1.0
+    ]
+   },
+   "any_lenient": {
+    "k": 17,
+    "n": 18,
+    "p": 0.9444,
+    "ci95": [
+     0.7424,
+     0.9901
+    ]
+   },
+   "focus-lost-lenient": {
+    "k": 8,
+    "n": 18,
+    "p": 0.4444,
+    "ci95": [
+     0.2456,
+     0.6628
+    ]
+   },
+   "axe_wcag_clean": {
+    "k": 18,
+    "n": 18,
+    "p": 1.0,
+    "ci95": [
+     0.8241,
+     1.0
+    ]
+   }
+  },
+  "haiku-5-5": {
+   "silent-start": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "silent-terminal": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "announcement-overload": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "focus-lost": {
+    "k": 6,
+    "n": 18,
+    "p": 0.3333,
+    "ci95": [
+     0.1628,
+     0.5625
+    ]
+   },
+   "stop-unreachable": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "partial-lost": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "stale-leak": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "busy-stuck": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "any": {
+    "k": 6,
+    "n": 18,
+    "p": 0.3333,
+    "ci95": [
+     0.1628,
+     0.5625
+    ]
+   },
+   "any_lenient": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "focus-lost-lenient": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "axe_wcag_clean": {
+    "k": 18,
+    "n": 18,
+    "p": 1.0,
+    "ci95": [
+     0.8241,
+     1.0
+    ]
+   }
+  },
+  "opus-4-5": {
+   "silent-start": {
+    "k": 6,
+    "n": 17,
+    "p": 0.3529,
+    "ci95": [
+     0.1731,
+     0.587
+    ]
+   },
+   "silent-terminal": {
+    "k": 6,
+    "n": 17,
+    "p": 0.3529,
+    "ci95": [
+     0.1731,
+     0.587
+    ]
+   },
+   "announcement-overload": {
+    "k": 5,
+    "n": 17,
+    "p": 0.2941,
+    "ci95": [
+     0.1328,
+     0.5313
+    ]
+   },
+   "focus-lost": {
+    "k": 17,
+    "n": 17,
+    "p": 1.0,
+    "ci95": [
+     0.8157,
+     1.0
+    ]
+   },
+   "stop-unreachable": {
+    "k": 0,
+    "n": 17,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1843
+    ]
+   },
+   "partial-lost": {
+    "k": 0,
+    "n": 17,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1843
+    ]
+   },
+   "stale-leak": {
+    "k": 8,
+    "n": 17,
+    "p": 0.4706,
+    "ci95": [
+     0.2616,
+     0.6904
+    ]
+   },
+   "busy-stuck": {
+    "k": 0,
+    "n": 17,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1843
+    ]
+   },
+   "any": {
+    "k": 17,
+    "n": 17,
+    "p": 1.0,
+    "ci95": [
+     0.8157,
+     1.0
+    ]
+   },
+   "any_lenient": {
+    "k": 11,
+    "n": 17,
+    "p": 0.6471,
+    "ci95": [
+     0.413,
+     0.8269
+    ]
+   },
+   "focus-lost-lenient": {
+    "k": 0,
+    "n": 17,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1843
+    ]
+   },
+   "axe_wcag_clean": {
+    "k": 17,
+    "n": 17,
+    "p": 1.0,
+    "ci95": [
+     0.8157,
+     1.0
+    ]
+   }
+  },
+  "opus-5-5": {
+   "silent-start": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "silent-terminal": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "announcement-overload": {
+    "k": 4,
+    "n": 18,
+    "p": 0.2222,
+    "ci95": [
+     0.09,
+     0.4522
+    ]
+   },
+   "focus-lost": {
+    "k": 6,
+    "n": 18,
+    "p": 0.3333,
+    "ci95": [
+     0.1628,
+     0.5625
+    ]
+   },
+   "stop-unreachable": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "partial-lost": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "stale-leak": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "busy-stuck": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "any": {
+    "k": 6,
+    "n": 18,
+    "p": 0.3333,
+    "ci95": [
+     0.1628,
+     0.5625
+    ]
+   },
+   "any_lenient": {
+    "k": 4,
+    "n": 18,
+    "p": 0.2222,
+    "ci95": [
+     0.09,
+     0.4522
+    ]
+   },
+   "focus-lost-lenient": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "axe_wcag_clean": {
+    "k": 18,
+    "n": 18,
+    "p": 1.0,
+    "ci95": [
+     0.8241,
+     1.0
+    ]
+   }
+  },
+  "sonnet-5-5": {
+   "silent-start": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "silent-terminal": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "announcement-overload": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "focus-lost": {
+    "k": 6,
+    "n": 18,
+    "p": 0.3333,
+    "ci95": [
+     0.1628,
+     0.5625
+    ]
+   },
+   "stop-unreachable": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "partial-lost": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "stale-leak": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "busy-stuck": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "any": {
+    "k": 6,
+    "n": 18,
+    "p": 0.3333,
+    "ci95": [
+     0.1628,
+     0.5625
+    ]
+   },
+   "any_lenient": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "focus-lost-lenient": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "axe_wcag_clean": {
+    "k": 18,
+    "n": 18,
+    "p": 1.0,
+    "ci95": [
+     0.8241,
+     1.0
+    ]
+   }
+  }
+ },
+ "by_generation": {
+  "4.5": {
+   "silent-start": {
+    "k": 13,
+    "n": 35,
+    "p": 0.3714,
+    "ci95": [
+     0.2317,
+     0.5366
+    ]
+   },
+   "silent-terminal": {
+    "k": 12,
+    "n": 35,
+    "p": 0.3429,
+    "ci95": [
+     0.2083,
+     0.5085
+    ]
+   },
+   "announcement-overload": {
+    "k": 10,
+    "n": 35,
+    "p": 0.2857,
+    "ci95": [
+     0.1633,
+     0.4506
+    ]
+   },
+   "focus-lost": {
+    "k": 35,
+    "n": 35,
+    "p": 1.0,
+    "ci95": [
+     0.9011,
+     1.0
+    ]
+   },
+   "stop-unreachable": {
+    "k": 0,
+    "n": 35,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.0989
+    ]
+   },
+   "partial-lost": {
+    "k": 2,
+    "n": 35,
+    "p": 0.0571,
+    "ci95": [
+     0.0158,
+     0.1861
+    ]
+   },
+   "stale-leak": {
+    "k": 17,
+    "n": 35,
+    "p": 0.4857,
+    "ci95": [
+     0.3299,
+     0.6443
+    ]
+   },
+   "busy-stuck": {
+    "k": 0,
+    "n": 35,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.0989
+    ]
+   },
+   "any": {
+    "k": 35,
+    "n": 35,
+    "p": 1.0,
+    "ci95": [
+     0.9011,
+     1.0
+    ]
+   },
+   "any_lenient": {
+    "k": 28,
+    "n": 35,
+    "p": 0.8,
+    "ci95": [
+     0.6411,
+     0.8996
+    ]
+   },
+   "focus-lost-lenient": {
+    "k": 8,
+    "n": 35,
+    "p": 0.2286,
+    "ci95": [
+     0.1207,
+     0.3902
+    ]
+   },
+   "axe_wcag_clean": {
+    "k": 35,
+    "n": 35,
+    "p": 1.0,
+    "ci95": [
+     0.9011,
+     1.0
+    ]
+   }
+  },
+  "5.5": {
+   "silent-start": {
+    "k": 0,
+    "n": 54,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.0664
+    ]
+   },
+   "silent-terminal": {
+    "k": 0,
+    "n": 54,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.0664
+    ]
+   },
+   "announcement-overload": {
+    "k": 4,
+    "n": 54,
+    "p": 0.0741,
+    "ci95": [
+     0.0292,
+     0.1755
+    ]
+   },
+   "focus-lost": {
+    "k": 18,
+    "n": 54,
+    "p": 0.3333,
+    "ci95": [
+     0.2224,
+     0.4664
+    ]
+   },
+   "stop-unreachable": {
+    "k": 0,
+    "n": 54,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.0664
+    ]
+   },
+   "partial-lost": {
+    "k": 0,
+    "n": 54,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.0664
+    ]
+   },
+   "stale-leak": {
+    "k": 0,
+    "n": 54,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.0664
+    ]
+   },
+   "busy-stuck": {
+    "k": 0,
+    "n": 54,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.0664
+    ]
+   },
+   "any": {
+    "k": 18,
+    "n": 54,
+    "p": 0.3333,
+    "ci95": [
+     0.2224,
+     0.4664
+    ]
+   },
+   "any_lenient": {
+    "k": 4,
+    "n": 54,
+    "p": 0.0741,
+    "ci95": [
+     0.0292,
+     0.1755
+    ]
+   },
+   "focus-lost-lenient": {
+    "k": 0,
+    "n": 54,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.0664
+    ]
+   },
+   "axe_wcag_clean": {
+    "k": 54,
+    "n": 54,
+    "p": 1.0,
+    "ci95": [
+     0.9336,
+     1.0
+    ]
+   }
+  }
+ },
+ "by_model_condition": {
+  "haiku-4-5|C0_plain": {
+   "any": {
+    "k": 6,
+    "n": 6,
+    "p": 1.0,
+    "ci95": [
+     0.6097,
+     1.0
+    ]
+   },
+   "any_lenient": {
+    "k": 6,
+    "n": 6,
+    "p": 1.0,
+    "ci95": [
+     0.6097,
+     1.0
+    ]
+   },
+   "focus-lost": {
+    "k": 6,
+    "n": 6,
+    "p": 1.0,
+    "ci95": [
+     0.6097,
+     1.0
+    ]
+   },
+   "announcement-overload": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "stale-leak": {
+    "k": 3,
+    "n": 6,
+    "p": 0.5,
+    "ci95": [
+     0.1876,
+     0.8124
+    ]
+   },
+   "silent-start": {
+    "k": 6,
+    "n": 6,
+    "p": 1.0,
+    "ci95": [
+     0.6097,
+     1.0
+    ]
+   },
+   "silent-terminal": {
+    "k": 6,
+    "n": 6,
+    "p": 1.0,
+    "ci95": [
+     0.6097,
+     1.0
+    ]
+   }
+  },
+  "haiku-4-5|C1_accessible": {
+   "any": {
+    "k": 6,
+    "n": 6,
+    "p": 1.0,
+    "ci95": [
+     0.6097,
+     1.0
+    ]
+   },
+   "any_lenient": {
+    "k": 6,
+    "n": 6,
+    "p": 1.0,
+    "ci95": [
+     0.6097,
+     1.0
+    ]
+   },
+   "focus-lost": {
+    "k": 6,
+    "n": 6,
+    "p": 1.0,
+    "ci95": [
+     0.6097,
+     1.0
+    ]
+   },
+   "announcement-overload": {
+    "k": 4,
+    "n": 6,
+    "p": 0.6667,
+    "ci95": [
+     0.3,
+     0.9032
+    ]
+   },
+   "stale-leak": {
+    "k": 3,
+    "n": 6,
+    "p": 0.5,
+    "ci95": [
+     0.1876,
+     0.8124
+    ]
+   },
+   "silent-start": {
+    "k": 1,
+    "n": 6,
+    "p": 0.1667,
+    "ci95": [
+     0.0301,
+     0.5635
+    ]
+   },
+   "silent-terminal": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   }
+  },
+  "haiku-4-5|C2_lifecycle": {
+   "any": {
+    "k": 6,
+    "n": 6,
+    "p": 1.0,
+    "ci95": [
+     0.6097,
+     1.0
+    ]
+   },
+   "any_lenient": {
+    "k": 5,
+    "n": 6,
+    "p": 0.8333,
+    "ci95": [
+     0.4365,
+     0.9699
+    ]
+   },
+   "focus-lost": {
+    "k": 6,
+    "n": 6,
+    "p": 1.0,
+    "ci95": [
+     0.6097,
+     1.0
+    ]
+   },
+   "announcement-overload": {
+    "k": 1,
+    "n": 6,
+    "p": 0.1667,
+    "ci95": [
+     0.0301,
+     0.5635
+    ]
+   },
+   "stale-leak": {
+    "k": 3,
+    "n": 6,
+    "p": 0.5,
+    "ci95": [
+     0.1876,
+     0.8124
+    ]
+   },
+   "silent-start": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "silent-terminal": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   }
+  },
+  "haiku-5-5|C0_plain": {
+   "any": {
+    "k": 6,
+    "n": 6,
+    "p": 1.0,
+    "ci95": [
+     0.6097,
+     1.0
+    ]
+   },
+   "any_lenient": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "focus-lost": {
+    "k": 6,
+    "n": 6,
+    "p": 1.0,
+    "ci95": [
+     0.6097,
+     1.0
+    ]
+   },
+   "announcement-overload": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "stale-leak": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "silent-start": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "silent-terminal": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   }
+  },
+  "haiku-5-5|C1_accessible": {
+   "any": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "any_lenient": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "focus-lost": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "announcement-overload": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "stale-leak": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "silent-start": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "silent-terminal": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   }
+  },
+  "haiku-5-5|C2_lifecycle": {
+   "any": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "any_lenient": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "focus-lost": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "announcement-overload": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "stale-leak": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "silent-start": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "silent-terminal": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   }
+  },
+  "opus-4-5|C0_plain": {
+   "any": {
+    "k": 6,
+    "n": 6,
+    "p": 1.0,
+    "ci95": [
+     0.6097,
+     1.0
+    ]
+   },
+   "any_lenient": {
+    "k": 6,
+    "n": 6,
+    "p": 1.0,
+    "ci95": [
+     0.6097,
+     1.0
+    ]
+   },
+   "focus-lost": {
+    "k": 6,
+    "n": 6,
+    "p": 1.0,
+    "ci95": [
+     0.6097,
+     1.0
+    ]
+   },
+   "announcement-overload": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "stale-leak": {
+    "k": 4,
+    "n": 6,
+    "p": 0.6667,
+    "ci95": [
+     0.3,
+     0.9032
+    ]
+   },
+   "silent-start": {
+    "k": 6,
+    "n": 6,
+    "p": 1.0,
+    "ci95": [
+     0.6097,
+     1.0
+    ]
+   },
+   "silent-terminal": {
+    "k": 6,
+    "n": 6,
+    "p": 1.0,
+    "ci95": [
+     0.6097,
+     1.0
+    ]
+   }
+  },
+  "opus-4-5|C1_accessible": {
+   "any": {
+    "k": 5,
+    "n": 5,
+    "p": 1.0,
+    "ci95": [
+     0.5655,
+     1.0
+    ]
+   },
+   "any_lenient": {
+    "k": 5,
+    "n": 5,
+    "p": 1.0,
+    "ci95": [
+     0.5655,
+     1.0
+    ]
+   },
+   "focus-lost": {
+    "k": 5,
+    "n": 5,
+    "p": 1.0,
+    "ci95": [
+     0.5655,
+     1.0
+    ]
+   },
+   "announcement-overload": {
+    "k": 5,
+    "n": 5,
+    "p": 1.0,
+    "ci95": [
+     0.5655,
+     1.0
+    ]
+   },
+   "stale-leak": {
+    "k": 4,
+    "n": 5,
+    "p": 0.8,
+    "ci95": [
+     0.3755,
+     0.9638
+    ]
+   },
+   "silent-start": {
+    "k": 0,
+    "n": 5,
+    "p": 0.0,
+    "ci95": [
+     -0.0,
+     0.4345
+    ]
+   },
+   "silent-terminal": {
+    "k": 0,
+    "n": 5,
+    "p": 0.0,
+    "ci95": [
+     -0.0,
+     0.4345
+    ]
+   }
+  },
+  "opus-4-5|C2_lifecycle": {
+   "any": {
+    "k": 6,
+    "n": 6,
+    "p": 1.0,
+    "ci95": [
+     0.6097,
+     1.0
+    ]
+   },
+   "any_lenient": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "focus-lost": {
+    "k": 6,
+    "n": 6,
+    "p": 1.0,
+    "ci95": [
+     0.6097,
+     1.0
+    ]
+   },
+   "announcement-overload": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "stale-leak": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "silent-start": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "silent-terminal": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   }
+  },
+  "opus-5-5|C0_plain": {
+   "any": {
+    "k": 6,
+    "n": 6,
+    "p": 1.0,
+    "ci95": [
+     0.6097,
+     1.0
+    ]
+   },
+   "any_lenient": {
+    "k": 4,
+    "n": 6,
+    "p": 0.6667,
+    "ci95": [
+     0.3,
+     0.9032
+    ]
+   },
+   "focus-lost": {
+    "k": 6,
+    "n": 6,
+    "p": 1.0,
+    "ci95": [
+     0.6097,
+     1.0
+    ]
+   },
+   "announcement-overload": {
+    "k": 4,
+    "n": 6,
+    "p": 0.6667,
+    "ci95": [
+     0.3,
+     0.9032
+    ]
+   },
+   "stale-leak": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "silent-start": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "silent-terminal": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   }
+  },
+  "opus-5-5|C1_accessible": {
+   "any": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "any_lenient": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "focus-lost": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "announcement-overload": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "stale-leak": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "silent-start": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "silent-terminal": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   }
+  },
+  "opus-5-5|C2_lifecycle": {
+   "any": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "any_lenient": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "focus-lost": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "announcement-overload": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "stale-leak": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "silent-start": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "silent-terminal": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   }
+  },
+  "sonnet-5-5|C0_plain": {
+   "any": {
+    "k": 6,
+    "n": 6,
+    "p": 1.0,
+    "ci95": [
+     0.6097,
+     1.0
+    ]
+   },
+   "any_lenient": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "focus-lost": {
+    "k": 6,
+    "n": 6,
+    "p": 1.0,
+    "ci95": [
+     0.6097,
+     1.0
+    ]
+   },
+   "announcement-overload": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "stale-leak": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "silent-start": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "silent-terminal": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   }
+  },
+  "sonnet-5-5|C1_accessible": {
+   "any": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "any_lenient": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "focus-lost": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "announcement-overload": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "stale-leak": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "silent-start": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "silent-terminal": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   }
+  },
+  "sonnet-5-5|C2_lifecycle": {
+   "any": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "any_lenient": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "focus-lost": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "announcement-overload": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "stale-leak": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "silent-start": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "silent-terminal": {
+    "k": 0,
+    "n": 6,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   }
+  }
+ },
+ "by_generation_condition": {
+  "4.5|C0_plain": {
+   "any": {
+    "k": 12,
+    "n": 12,
+    "p": 1.0,
+    "ci95": [
+     0.7575,
+     1.0
+    ]
+   },
+   "any_lenient": {
+    "k": 12,
+    "n": 12,
+    "p": 1.0,
+    "ci95": [
+     0.7575,
+     1.0
+    ]
+   }
+  },
+  "4.5|C1_accessible": {
+   "any": {
+    "k": 11,
+    "n": 11,
+    "p": 1.0,
+    "ci95": [
+     0.7412,
+     1.0
+    ]
+   },
+   "any_lenient": {
+    "k": 11,
+    "n": 11,
+    "p": 1.0,
+    "ci95": [
+     0.7412,
+     1.0
+    ]
+   }
+  },
+  "4.5|C2_lifecycle": {
+   "any": {
+    "k": 12,
+    "n": 12,
+    "p": 1.0,
+    "ci95": [
+     0.7575,
+     1.0
+    ]
+   },
+   "any_lenient": {
+    "k": 5,
+    "n": 12,
+    "p": 0.4167,
+    "ci95": [
+     0.1933,
+     0.6805
+    ]
+   }
+  },
+  "5.5|C0_plain": {
+   "any": {
+    "k": 18,
+    "n": 18,
+    "p": 1.0,
+    "ci95": [
+     0.8241,
+     1.0
+    ]
+   },
+   "any_lenient": {
+    "k": 4,
+    "n": 18,
+    "p": 0.2222,
+    "ci95": [
+     0.09,
+     0.4522
+    ]
+   }
+  },
+  "5.5|C1_accessible": {
+   "any": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "any_lenient": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   }
+  },
+  "5.5|C2_lifecycle": {
+   "any": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "any_lenient": {
+    "k": 0,
+    "n": 18,
+    "p": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   }
+  }
+ },
+ "concealment": {
+  "axe_wcag_clean": 89,
+  "of": 89,
+  "clean_with_lifecycle_failure": {
+   "k": 53,
+   "n": 89,
+   "p": 0.5955,
+   "ci95": [
+    0.4916,
+    0.6915
+   ]
+  },
+  "clean_with_lifecycle_failure_lenient": {
+   "k": 32,
+   "n": 89,
+   "p": 0.3596,
+   "ci95": [
+    0.2676,
+    0.4631
+   ]
+  }
+ },
+ "axe_rules_seen": {
+  "region": 34,
+  "aria-allowed-role": 8,
+  "landmark-banner-is-top-level": 4,
+  "landmark-unique": 3,
+  "landmark-contentinfo-is-top-level": 1
+ },
+ "tests": {
+  "C0_plain_vs_C1_accessible_any": {
+   "table": [
+    [
+     30,
+     0
+    ],
+    [
+     11,
+     18
+    ]
+   ],
+   "odds_ratio": null,
+   "p": 5.34e-08
+  },
+  "C0_plain_vs_C1_accessible_any_lenient": {
+   "table": [
+    [
+     16,
+     14
+    ],
+    [
+     11,
+     18
+    ]
+   ],
+   "odds_ratio": 1.87,
+   "p": 0.299
+  },
+  "C0_plain_vs_C1_accessible_focus-lost": {
+   "table": [
+    [
+     30,
+     0
+    ],
+    [
+     11,
+     18
+    ]
+   ],
+   "odds_ratio": null,
+   "p": 5.34e-08
+  },
+  "C0_plain_vs_C1_accessible_announcement-overload": {
+   "table": [
+    [
+     4,
+     26
+    ],
+    [
+     9,
+     20
+    ]
+   ],
+   "odds_ratio": 0.342,
+   "p": 0.125
+  },
+  "C0_plain_vs_C1_accessible_stale-leak": {
+   "table": [
+    [
+     7,
+     23
+    ],
+    [
+     7,
+     22
+    ]
+   ],
+   "odds_ratio": 0.957,
+   "p": 1.0
+  },
+  "C0_plain_vs_C1_accessible_silent-start": {
+   "table": [
+    [
+     12,
+     18
+    ],
+    [
+     1,
+     28
+    ]
+   ],
+   "odds_ratio": 18.667,
+   "p": 0.00105
+  },
+  "C0_plain_vs_C1_accessible_silent-terminal": {
+   "table": [
+    [
+     12,
+     18
+    ],
+    [
+     0,
+     29
+    ]
+   ],
+   "odds_ratio": null,
+   "p": 0.000124
+  },
+  "C1_accessible_vs_C2_lifecycle_any": {
+   "table": [
+    [
+     11,
+     18
+    ],
+    [
+     12,
+     18
+    ]
+   ],
+   "odds_ratio": 0.917,
+   "p": 1.0
+  },
+  "C1_accessible_vs_C2_lifecycle_any_lenient": {
+   "table": [
+    [
+     11,
+     18
+    ],
+    [
+     5,
+     25
+    ]
+   ],
+   "odds_ratio": 3.056,
+   "p": 0.084
+  },
+  "C1_accessible_vs_C2_lifecycle_focus-lost": {
+   "table": [
+    [
+     11,
+     18
+    ],
+    [
+     12,
+     18
+    ]
+   ],
+   "odds_ratio": 0.917,
+   "p": 1.0
+  },
+  "C1_accessible_vs_C2_lifecycle_announcement-overload": {
+   "table": [
+    [
+     9,
+     20
+    ],
+    [
+     1,
+     29
+    ]
+   ],
+   "odds_ratio": 13.05,
+   "p": 0.00558
+  },
+  "C1_accessible_vs_C2_lifecycle_stale-leak": {
+   "table": [
+    [
+     7,
+     22
+    ],
+    [
+     3,
+     27
+    ]
+   ],
+   "odds_ratio": 2.864,
+   "p": 0.181
+  },
+  "C1_accessible_vs_C2_lifecycle_silent-start": {
+   "table": [
+    [
+     1,
+     28
+    ],
+    [
+     0,
+     30
+    ]
+   ],
+   "odds_ratio": null,
+   "p": 0.492
+  },
+  "C1_accessible_vs_C2_lifecycle_silent-terminal": {
+   "table": [
+    [
+     0,
+     29
+    ],
+    [
+     0,
+     30
+    ]
+   ],
+   "odds_ratio": null,
+   "p": 1.0
+  },
+  "C0_plain_vs_C2_lifecycle_any": {
+   "table": [
+    [
+     30,
+     0
+    ],
+    [
+     12,
+     18
+    ]
+   ],
+   "odds_ratio": null,
+   "p": 1.87e-07
+  },
+  "C0_plain_vs_C2_lifecycle_any_lenient": {
+   "table": [
+    [
+     16,
+     14
+    ],
+    [
+     5,
+     25
+    ]
+   ],
+   "odds_ratio": 5.714,
+   "p": 0.00611
+  },
+  "C0_plain_vs_C2_lifecycle_focus-lost": {
+   "table": [
+    [
+     30,
+     0
+    ],
+    [
+     12,
+     18
+    ]
+   ],
+   "odds_ratio": null,
+   "p": 1.87e-07
+  },
+  "C0_plain_vs_C2_lifecycle_announcement-overload": {
+   "table": [
+    [
+     4,
+     26
+    ],
+    [
+     1,
+     29
+    ]
+   ],
+   "odds_ratio": 4.462,
+   "p": 0.353
+  },
+  "C0_plain_vs_C2_lifecycle_stale-leak": {
+   "table": [
+    [
+     7,
+     23
+    ],
+    [
+     3,
+     27
+    ]
+   ],
+   "odds_ratio": 2.739,
+   "p": 0.299
+  },
+  "C0_plain_vs_C2_lifecycle_silent-start": {
+   "table": [
+    [
+     12,
+     18
+    ],
+    [
+     0,
+     30
+    ]
+   ],
+   "odds_ratio": null,
+   "p": 0.000124
+  },
+  "C0_plain_vs_C2_lifecycle_silent-terminal": {
+   "table": [
+    [
+     12,
+     18
+    ],
+    [
+     0,
+     30
+    ]
+   ],
+   "odds_ratio": null,
+   "p": 0.000124
+  },
+  "gen45_vs_gen55_any": {
+   "table": [
+    [
+     35,
+     0
+    ],
+    [
+     18,
+     36
+    ]
+   ],
+   "odds_ratio": null,
+   "p": 1.02e-11
+  },
+  "gen45_vs_gen55_C1C2_any": {
+   "table": [
+    [
+     23,
+     0
+    ],
+    [
+     0,
+     36
+    ]
+   ],
+   "odds_ratio": null,
+   "p": 6.93e-17
+  },
+  "gen45_vs_gen55_any_lenient": {
+   "table": [
+    [
+     28,
+     7
+    ],
+    [
+     4,
+     50
+    ]
+   ],
+   "odds_ratio": 50.0,
+   "p": 1.4e-12
+  },
+  "gen45_vs_gen55_C1C2_any_lenient": {
+   "table": [
+    [
+     16,
+     7
+    ],
+    [
+     0,
+     36
+    ]
+   ],
+   "odds_ratio": null,
+   "p": 2.23e-09
+  }
+ },
+ "differences": {
+  "plain_minus_accessible_any": {
+   "a": [
+    30,
+    30
+   ],
+   "b": [
+    11,
+    29
+   ],
+   "diff": 0.6207,
+   "ci95": [
+    0.4073,
+    0.7731
+   ]
+  },
+  "accessible_minus_lifecycle_any": {
+   "a": [
+    11,
+    29
+   ],
+   "b": [
+    12,
+    30
+   ],
+   "diff": -0.0207,
+   "ci95": [
+    -0.2541,
+    0.2168
+   ]
+  },
+  "accessible_minus_lifecycle_overload": {
+   "a": [
+    9,
+    29
+   ],
+   "b": [
+    1,
+    30
+   ],
+   "diff": 0.277,
+   "ci95": [
+    0.0854,
+    0.461
+   ]
+  },
+  "gen45_minus_gen55_accessible_prompts_any": {
+   "a": [
+    23,
+    23
+   ],
+   "b": [
+    0,
+    36
+   ],
+   "diff": 1.0,
+   "ci95": [
+    0.8275,
+    1.0
+   ]
+  },
+  "plain_minus_accessible_any_lenient": {
+   "a": [
+    16,
+    30
+   ],
+   "b": [
+    11,
+    29
+   ],
+   "diff": 0.154,
+   "ci95": [
+    -0.0954,
+    0.3782
+   ]
+  }
+ },
+ "conservative": {
+  "strict": 53,
+  "conservative": 32,
+  "excluded_only_disabled_focus": 21,
+  "focus_loss_strict": 53,
+  "focus_loss_conservative": 8
+ },
+ "focus_reasons_impl_counts": {
+  "disabled": 53,
+  "hidden": 8
+ },
+ "A": {
+  "n_with_content_announcements": 18,
+  "max": 7.02,
+  "median_over2": 6.02,
+  "over2_by_cond": {
+   "C0_plain": 4,
+   "C1_accessible": 9,
+   "C2_lifecycle": 1
+  },
+  "threshold_sensitivity": {
+   "1.0": 15,
+   "1.5": 15,
+   "2.0": 14,
+   "3.0": 14,
+   "5.0": 14
+  },
+  "values": {
+   "n_zero": 71,
+   "n_between_0_and_2": 4,
+   "min_over2": 5.97,
+   "max_at_most2": 2.0,
+   "n_over2": 14,
+   "n_exactly_1": 2
+  }
+ },
+ "n_fail_distribution": {
+  "0": 36,
+  "1": 22,
+  "2": 11,
+  "3": 13,
+  "4": 7
+ },
+ "repair": {
+  "generic": {
+   "n": 30,
+   "compatible": 30,
+   "still_any": {
+    "k": 12,
+    "n": 30,
+    "p": 0.4,
+    "ci95": [
+     0.2459,
+     0.5768
+    ]
+   },
+   "still_any_lenient": {
+    "k": 12,
+    "n": 30,
+    "p": 0.4,
+    "ci95": [
+     0.2459,
+     0.5768
+    ]
+   },
+   "fixed_all": 18,
+   "families_before_total": 65,
+   "families_after_total": 34,
+   "introduced_new_family": 10,
+   "axe_wcag_regressions": 0,
+   "broke_function": 0,
+   "functional_after": 1,
+   "per_family_after": {
+    "silent-start": 1,
+    "silent-terminal": 2,
+    "announcement-overload": 10,
+    "focus-lost": 12,
+    "stop-unreachable": 0,
+    "partial-lost": 0,
+    "stale-leak": 9,
+    "busy-stuck": 0
+   },
+   "by_gen": {
+    "4.5": {
+     "k": 12,
+     "n": 12,
+     "p": 1.0,
+     "ci95": [
+      0.7575,
+      1.0
+     ]
+    },
+    "5.5": {
+     "k": 0,
+     "n": 18,
+     "p": 0.0,
+     "ci95": [
+      0.0,
+      0.1759
+     ]
+    }
+   }
+  },
+  "streama11y": {
+   "n": 30,
+   "compatible": 30,
+   "still_any": {
+    "k": 9,
+    "n": 30,
+    "p": 0.3,
+    "ci95": [
+     0.1666,
+     0.4788
+    ]
+   },
+   "still_any_lenient": {
+    "k": 9,
+    "n": 30,
+    "p": 0.3,
+    "ci95": [
+     0.1666,
+     0.4788
+    ]
+   },
+   "fixed_all": 21,
+   "families_before_total": 65,
+   "families_after_total": 16,
+   "introduced_new_family": 7,
+   "axe_wcag_regressions": 0,
+   "broke_function": 0,
+   "functional_after": 1,
+   "per_family_after": {
+    "silent-start": 0,
+    "silent-terminal": 0,
+    "announcement-overload": 6,
+    "focus-lost": 4,
+    "stop-unreachable": 0,
+    "partial-lost": 1,
+    "stale-leak": 5,
+    "busy-stuck": 0
+   },
+   "by_gen": {
+    "4.5": {
+     "k": 9,
+     "n": 12,
+     "p": 0.75,
+     "ci95": [
+      0.4677,
+      0.9111
+     ]
+    },
+    "5.5": {
+     "k": 0,
+     "n": 18,
+     "p": 0.0,
+     "ci95": [
+      0.0,
+      0.1759
+     ]
+    }
+   }
+  },
+  "paired": {
+   "pairs": 30,
+   "fixed_only_by_streama11y": 3,
+   "fixed_only_by_generic": 0,
+   "both_fixed": 18,
+   "neither_fixed": 9,
+   "mcnemar_exact_p": 0.25
+  },
+  "paired_families": {
+   "pairs": 30,
+   "generic_total": 34,
+   "streama11y_total": 16,
+   "streama11y_fewer": 11,
+   "generic_fewer": 0,
+   "ties": 19,
+   "wilcoxon_p": 0.00276
+  },
+  "families_by_gen": {
+   "4.5": {
+    "generic": 34,
+    "streama11y": 16,
+    "before": 43
+   },
+   "5.5": {
+    "generic": 0,
+    "streama11y": 0,
+    "before": 22
+   }
+  },
+  "incompatible": []
+ }
+}

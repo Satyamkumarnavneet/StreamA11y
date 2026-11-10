@@ -147,3 +147,11 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# StreamA11y local reruns and temporary analysis
+results/recomputed/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+*.private.txt

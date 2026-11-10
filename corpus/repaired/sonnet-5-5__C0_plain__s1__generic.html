@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat Assistant</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --panel: #ffffff;
+    --border: #d9dce1;
+    --control-border: #6b7280;   /* >= 3:1 against white (WCAG 1.4.11) */
+    --text: #1d2129;
+    --muted: #4b5563;            /* >= 7:1 on white, >= 4.5:1 on assistant bubble */
+    --user: #1d4ed8;
+    --user-text: #ffffff;
+    --assistant: #eef0f4;
+    --ok: #15803d;
+    --warn: #92400e;
+    --err: #b91c1c;
+    --busy: #1d4ed8;
+    --focus: #1e3a8a;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+  }
+  .sr-only {
+    position: absolute !important;
+    width: 1px; height: 1px;
+    margin: -1px; padding: 0; border: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .app {
+    width: 100%;
+    max-width: 51.25rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+  header {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 0.75rem;
+  }
+  header h1 { font-size: 1.0625rem; margin: 0; font-weight: 600; }
+  #status {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-size: 0.875rem; color: var(--muted);
+    min-height: 1.25rem;
+  }
+  #status .dot {
+    width: 0.625rem; height: 0.625rem; border-radius: 50%;
+    background: var(--muted); flex: none;
+  }
+  #status[data-state="generating"] { color: var(--busy); }
+  #status[data-state="generating"] .dot { background: var(--busy); animation: pulse 1s infinite ease-in-out; }
+  #status[data-state="done"] { color: var(--ok); }
+  #status[data-state="done"] .dot { background: var(--ok); }
+  #status[data-state="stopped"] { color: var(--warn); }
+  #status[data-state="stopped"] .dot { background: var(--warn); }
+  #status[data-state="error"] { color: var(--err); }
+  #status[data-state="error"] .dot { background: var(--err); }
+  @keyframes pulse { 0%,100% { opacity: .3; } 50% { opacity: 1; } }
+
+  main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  #conversation {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+  }
+  .empty-hint {
+    margin: auto;
+    color: var(--muted);
+    font-size: 0.875rem;
+    text-align: center;
+  }
+  .msg { display: flex; flex-direction: column; max-width: 85%; }
+  .msg.user { align-self: flex-end; align-items: flex-end; }
+  .msg.assistant { align-self: flex-start; align-items: flex-start; }
+  .role {
+    font-size: 0.75rem; color: var(--muted); margin: 0 0.25rem 0.1875rem;
+    text-transform: uppercase; letter-spacing: .04em;
+  }
+  .bubble {
+    padding: 0.625rem 0.8125rem;
+    border-radius: 0.875rem;
+    line-height: 1.5;
+    font-size: 1rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .user .bubble { background: var(--user); color: var(--user-text); border-bottom-right-radius: 0.25rem; }
+  .assistant .bubble { background: var(--assistant); border-bottom-left-radius: 0.25rem; }
+  .assistant.stopped .bubble { border: 1px dashed var(--warn); }
+  .assistant.error .bubble { border: 1px solid var(--err); }
+  .bubble:empty { display: none; }
+  .meta {
+    font-size: 0.8125rem; margin: 0.25rem 0.25rem 0; color: var(--muted);
+  }
+  .meta.generating { color: var(--busy); }
+  .meta.stopped { color: var(--warn); }
+  .meta.error { color: var(--err); }
+  .meta.done { color: var(--ok); }
+  .typing { display: inline-flex; gap: 0.25rem; padding: 0.25rem 0.125rem; }
+  .typing span {
+    width: 0.375rem; height: 0.375rem; border-radius: 50%; background: var(--muted);
+    animation: bounce 1.2s infinite ease-in-out;
+  }
+  .typing span:nth-child(2) { animation-delay: .15s; }
+  .typing span:nth-child(3) { animation-delay: .3s; }
+  @keyframes bounce { 0%,60%,100% { transform: translateY(0); opacity:.4; } 30% { transform: translateY(-4px); opacity:1; } }
+  .assistant.streaming .bubble:not(:empty)::after {
+    content: "▍";
+    content: "▍" / "";
+    margin-left: 1px; color: var(--busy); animation: pulse 1s infinite;
+  }
+
+  .composer {
+    border-top: 1px solid var(--border);
+    padding: 0.75rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .field-label { font-size: 0.875rem; font-weight: 600; }
+  .row { display: flex; gap: 0.5rem; align-items: flex-end; }
+  #prompt {
+    flex: 1;
+    min-width: 0;
+    resize: none;
+    min-height: 2.75rem;
+    max-height: 10rem;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--control-border);
+    border-radius: 0.625rem;
+    font: inherit;
+    font-size: 1rem;
+    line-height: 1.4;
+    color: var(--text);
+    background: #fff;
+  }
+  #prompt::placeholder { color: var(--muted); opacity: 1; }
+  button {
+    font: inherit; font-size: 0.9375rem;
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.625rem;
+    border: 1px solid var(--control-border);
+    background: #fff;
+    color: var(--text);
+    cursor: pointer;
+  }
+  button:hover:not(:disabled) { background: #f0f2f5; }
+  button:disabled { opacity: .55; cursor: not-allowed; }
+  #send { background: var(--user); border-color: var(--user); color: #fff; }
+  #send:hover:not(:disabled) { background: #1e40af; }
+  #stop { border-color: var(--err); color: var(--err); }
+  #stop:hover:not(:disabled) { background: #fdecec; }
+
+  :focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+  #conversation:focus-visible { outline-offset: -3px; }
+
+  .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+  .hint { font-size: 0.8125rem; color: var(--muted); margin: 0; }
+  .actions .hint { margin-left: auto; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+  @media (forced-colors: active) {
+    #status .dot { forced-color-adjust: none; }
+    .bubble { border: 1px solid CanvasText; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Chat Assistant</h1>
+    <div id="status" data-state="idle">
+      <span class="dot" aria-hidden="true"></span><span id="status-text">Ready</span>
+    </div>
+  </header>
+
+  <!-- Screen-reader announcements: polite for progress, assertive for errors -->
+  <div id="announcer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+  <div id="alert" class="sr-only" role="alert" aria-atomic="true"></div>
+
+  <main id="main">
+    <div id="conversation" role="log" aria-live="off" aria-label="Conversation history" tabindex="0">
+      <div class="empty-hint" id="empty-hint">Send a message to start the conversation.</div>
+    </div>
+  </main>
+
+  <div class="composer" role="group" aria-label="Compose message">
+    <label class="field-label" for="prompt">Message</label>
+    <div class="row">
+      <textarea id="prompt" rows="1" placeholder="Type your message" aria-describedby="prompt-hint"></textarea>
+      <button id="send" type="button">Send</button>
+    </div>
+    <p class="hint" id="prompt-hint">Press Enter to send, Shift+Enter for a new line.</p>
+    <div class="actions">
+      <button id="stop" type="button" disabled><span aria-hidden="true">■ </span>Stop</button>
+      <button id="regenerate" type="button" disabled aria-describedby="regen-hint"><span aria-hidden="true">↻ </span>Regenerate</button>
+      <span class="hint" id="regen-hint">Regenerate re-answers your last message.</span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var conversationEl = document.getElementById('conversation');
+  var emptyHintEl = document.getElementById('empty-hint');
+  var promptEl = document.getElementById('prompt');
+  var sendBtn = document.getElementById('send');
+  var stopBtn = document.getElementById('stop');
+  var regenBtn = document.getElementById('regenerate');
+  var statusEl = document.getElementById('status');
+  var statusTextEl = document.getElementById('status-text');
+  var announcerEl = document.getElementById('announcer');
+  var alertEl = document.getElementById('alert');
+
+  // history entries: { role, content, el, bubbleEl, metaEl }
+  var history = [];
+  // the stream currently in progress (null if none)
+  var current = null;
+  var idCounter = 0;
+
+  /* ---------- helpers ---------- */
+
+  function announce(el, text) {
+    // clear first so repeated identical messages are announced again
+    el.textContent = '';
+    setTimeout(function () { el.textContent = text; }, 60);
+  }
+
+  function setStatus(state, text) {
+    statusEl.setAttribute('data-state', state);
+    statusTextEl.textContent = text;
+    if (state === 'error') {
+      announce(alertEl, text);
+    } else if (state !== 'idle') {
+      announce(announcerEl, text);
+    }
+  }
+
+  function nearBottom() {
+    return conversationEl.scrollHeight - conversationEl.scrollTop - conversationEl.clientHeight < 80;
+  }
+  function scrollToBottom() {
+    conversationEl.scrollTop = conversationEl.scrollHeight;
+  }
+
+  function errorText(err) {
+    if (!err) return 'Unknown error';
+    if (typeof err === 'string') return err;
+    if (err.message) return String(err.message);
+    try { return String(err); } catch (e) { return 'Unknown error'; }
+  }
+
+  function lastUserIndex() {
+    for (var i = history.length - 1; i >= 0; i--) {
+      if (history[i].role === 'user') return i;
+    }
+    return -1;
+  }
+
+  function updateControls() {
+    var generating = !!current;
+    // Don't strand keyboard focus on a button that is about to be disabled
+    if (!generating && document.activeElement === stopBtn) promptEl.focus();
+    if (generating && document.activeElement === sendBtn) promptEl.focus();
+    sendBtn.disabled = generating;
+    stopBtn.disabled = !generating;
+    regenBtn.disabled = lastUserIndex() === -1;
+    emptyHintEl.style.display = history.length ? 'none' : '';
+  }
+
+  function addMessage(role, content) {
+    var stick = nearBottom();
+    var id = 'msg-role-' + (++idCounter);
+    var wrap = document.createElement('div');
+    wrap.className = 'msg ' + role;
+    wrap.setAttribute('role', 'article');
+    wrap.setAttribute('aria-labelledby', id);
+
+    var roleEl = document.createElement('div');
+    roleEl.className = 'role';
+    roleEl.id = id;
+    roleEl.textContent = role === 'user' ? 'You' : 'Assistant';
+
+    var bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = content;
+
+    var meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.style.display = 'none';
+
+    wrap.appendChild(roleEl);
+    wrap.appendChild(bubble);
+    wrap.appendChild(meta);
+    conversationEl.appendChild(wrap);
+
+    var entry = { role: role, content: content, el: wrap, bubbleEl: bubble, metaEl: meta };
+    history.push(entry);
+    if (stick || role === 'user') scrollToBottom();
+    return entry;
+  }
+
+  function setMeta(entry, kind, text) {
+    entry.metaEl.className = 'meta ' + kind;
+    entry.metaEl.textContent = text;
+    entry.metaEl.style.display = text ? '' : 'none';
+  }
+
+  function showTyping(entry) {
+    var t = document.createElement('span');
+    t.className = 'typing';
+    t.setAttribute('aria-hidden', 'true');
+    t.innerHTML = '<span></span><span></span><span></span>';
+    entry.typingEl = t;
+    entry.bubbleEl.style.display = 'block';
+    entry.bubbleEl.appendChild(t);
+  }
+  function hideTyping(entry) {
+    if (entry.typingEl) {
+      if (entry.typingEl.parentNode) entry.typingEl.parentNode.removeChild(entry.typingEl);
+      entry.typingEl = null;
+    }
+    entry.bubbleEl.style.display = '';
+  }
+
+  function removeAfter(index) {
+    while (history.length > index + 1) {
+      var e = history.pop();
+      if (e.el.parentNode) e.el.parentNode.removeChild(e.el);
+    }
+  }
+
+  /* ---------- streaming ---------- */
+
+  function finish(stream, state, message) {
+    // state: 'done' | 'stopped' | 'error'
+    stream.ended = true;
+    if (current === stream) current = null;
+    var entry = stream.entry;
+    hideTyping(entry);
+    entry.el.classList.remove('streaming');
+    entry.el.removeAttribute('aria-busy');
+    var hasText = entry.content.length > 0;
+
+    if (state === 'done') {
+      setMeta(entry, 'done', hasText ? '' : '(The assistant returned an empty answer.)');
+      entry.metaEl.style.display = hasText ? 'none' : '';
+      setStatus('done', hasText ? 'Finished' : 'Finished with an empty answer');
+    } else if (state === 'stopped') {
+      entry.el.classList.add('stopped');
+      setMeta(entry, 'stopped', hasText ? 'Stopped — partial answer kept' : 'Stopped before any text arrived');
+      setStatus('stopped', 'Stopped');
+    } else {
+      entry.el.classList.add('error');
+      setMeta(entry, 'error', 'Error: ' + message + (hasText ? ' (partial answer kept)' : ''));
+      setStatus('error', 'Error: ' + message);
+    }
+    updateControls();
+  }
+
+  function startStream() {
+    // Build payload from history (skip empty assistant placeholders from stopped/failed runs)
+    var payload = [];
+    for (var i = 0; i < history.length; i++) {
+      var m = history[i];
+      if (m.role === 'assistant' && !m.content) continue;
+      payload.push({ role: m.role, content: m.content });
+    }
+
+    alertEl.textContent = '';
+
+    var entry = addMessage('assistant', '');
+    entry.el.classList.add('streaming');
+    entry.el.setAttribute('aria-busy', 'true');
+    showTyping(entry);
+    setMeta(entry, 'generating', 'Generating…');
+
+    var stream = { aborted: false, ended: false, handle: null, entry: entry };
+    current = stream;
+    setStatus('generating', 'Generating answer…');
+    updateControls();
+
+    function onToken(text) {
+      // Ignore anything that arrives after stop / regenerate / completion
+      if (stream.aborted || stream.ended || current !== stream) return;
+      if (typeof text !== 'string' || !text) return;
+      var stick = nearBottom();
+      if (entry.typingEl) {
+        hideTyping(entry);
+        // answer has started: the "Generating…" note is redundant with the status
+        setMeta(entry, 'generating', '');
+      }
+      entry.content += text;
+      entry.bubbleEl.textContent = entry.content;
+      if (stick) scrollToBottom();
+    }
+    function onDone() {
+      if (stream.aborted || stream.ended || current !== stream) return;
+      finish(stream, 'done');
+    }
+    function onError(err) {
+      if (stream.aborted || stream.ended || current !== stream) return;
+      finish(stream, 'error', errorText(err));
+    }
+
+    try {
+      if (!window.ChatSDK || typeof window.ChatSDK.streamChat !== 'function') {
+        throw new Error('Chat service is not available.');
+      }
+      stream.handle = window.ChatSDK.streamChat(payload, {
+        onToken: onToken,
+        onDone: onDone,
+        onError: onError
+      });
+    } catch (e) {
+      if (!stream.ended) finish(stream, 'error', errorText(e));
+    }
+  }
+
+  function abortCurrent() {
+    var s = current;
+    if (!s) return null;
+    s.aborted = true;
+    current = null;
+    try {
+      if (s.handle && typeof s.handle.abort === 'function') s.handle.abort();
+    } catch (e) { /* ignore abort failures; stream is already ignored locally */ }
+    return s;
+  }
+
+  /* ---------- actions ---------- */
+
+  function send() {
+    if (current) return;
+    var text = promptEl.value.trim();
+    if (!text) return;
+    promptEl.value = '';
+    autoResize();
+    addMessage('user', text);
+    startStream();
+    promptEl.focus();
+  }
+
+  function stop() {
+    var s = abortCurrent();
+    if (!s) return;
+    finish(s, 'stopped');
+  }
+
+  function regenerate() {
+    var idx = lastUserIndex();
+    if (idx === -1) return;
+    var s = abortCurrent();
+    if (s) s.ended = true;
+    removeAfter(idx);   // drop the previous answer (and any partial/error answer)
+    startStream();
+  }
+
+  /* ---------- UI wiring ---------- */
+
+  function autoResize() {
+    var max = parseFloat(window.getComputedStyle(promptEl).maxHeight) || 160;
+    promptEl.style.height = 'auto';
+    promptEl.style.height = Math.min(promptEl.scrollHeight + 2, max) + 'px';
+  }
+
+  sendBtn.addEventListener('click', send);
+  stopBtn.addEventListener('click', stop);
+  regenBtn.addEventListener('click', regenerate);
+  promptEl.addEventListener('input', autoResize);
+  promptEl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      send();
+    }
+  });
+
+  setStatus('idle', 'Ready');
+  updateControls();
+  promptEl.focus();
+})();
+</script>
+</body>
+</html>

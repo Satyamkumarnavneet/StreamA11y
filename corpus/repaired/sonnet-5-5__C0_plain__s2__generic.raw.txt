@@ -1,0 +1,490 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat Assistant</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --panel: #ffffff;
+    --border: #d9dce1;
+    --control-border: #767c88;   /* >= 3:1 against panel and bg */
+    --text: #1d2129;
+    --muted: #565d6b;            /* >= 4.5:1 on panel, bg and assistant bubble */
+    --user: #2563eb;
+    --user-text: #ffffff;
+    --assistant: #eef0f4;
+    --ok: #15803d;
+    --warn: #9a4a07;
+    --err: #b91c1c;
+    --busy: #1d4fd8;
+    --focus: #1d4fd8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12141a;
+      --panel: #1a1d26;
+      --border: #2d3240;
+      --control-border: #8189a0;
+      --text: #e6e8ee;
+      --muted: #a8aebe;
+      --assistant: #252a37;
+      --ok: #4ade80;
+      --warn: #fbbf24;
+      --err: #f87171;
+      --busy: #7db1ff;
+      --focus: #8ab8ff;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font: 1rem/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+  }
+  .sr-only {
+    position: absolute !important;
+    width: 1px; height: 1px;
+    margin: -1px; padding: 0; border: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  #app {
+    width: 100%;
+    max-width: 51rem;
+    height: 100%;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+  header {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 0.75rem;
+  }
+  header h1 { font-size: 1.125rem; margin: 0; }
+  #status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--muted);
+    min-width: 0;
+  }
+  #status .dot {
+    width: 0.75rem; height: 0.75rem; border-radius: 50%;
+    background: var(--muted); flex: none;
+  }
+  #status[data-state="generating"] { color: var(--busy); }
+  #status[data-state="generating"] .dot { background: var(--busy); animation: pulse 1s infinite; }
+  #status[data-state="done"] { color: var(--ok); }
+  #status[data-state="done"] .dot { background: var(--ok); }
+  #status[data-state="stopped"] { color: var(--warn); }
+  #status[data-state="stopped"] .dot { background: var(--warn); }
+  #status[data-state="error"] { color: var(--err); }
+  #status[data-state="error"] .dot { background: var(--err); }
+  #status-text { overflow-wrap: anywhere; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+
+  main {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  #log {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+  }
+  .empty { margin: auto; color: var(--muted); text-align: center; }
+  .msg { display: flex; flex-direction: column; max-width: 85%; }
+  .msg.user { align-self: flex-end; align-items: flex-end; }
+  .msg.assistant { align-self: flex-start; align-items: flex-start; }
+  .role { font-size: 0.75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 0.2rem; }
+  .bubble {
+    padding: 0.55rem 0.8rem;
+    border-radius: 0.9rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    max-width: 100%;
+  }
+  .user .bubble { background: var(--user); color: var(--user-text); border-bottom-right-radius: 0.25rem; }
+  .assistant .bubble { background: var(--assistant); border-bottom-left-radius: 0.25rem; }
+  .assistant.error .bubble { border: 2px solid var(--err); }
+  .assistant.streaming .bubble:empty::before { content: "Thinking…"; color: var(--muted); }
+  .assistant.streaming .bubble::after {
+    content: ""; display: inline-block; width: 0.45rem; height: 1em;
+    margin-left: 2px; vertical-align: text-bottom;
+    background: currentColor; animation: pulse 1s infinite;
+  }
+  .assistant.streaming .bubble:empty::after { display: none; }
+  .tag { font-size: 0.8125rem; margin-top: 0.25rem; color: var(--muted); }
+  .tag.stopped { color: var(--warn); }
+  .tag.error { color: var(--err); }
+  .tag.done { color: var(--ok); }
+
+  .composer { border-top: 1px solid var(--border); padding: 0.75rem 1rem; }
+  .field-label { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.25rem; }
+  .row { display: flex; gap: 0.5rem; align-items: flex-end; }
+  #prompt {
+    flex: 1;
+    min-width: 0;
+    resize: none;
+    min-height: 2.75rem;
+    max-height: 10rem;
+    padding: 0.6rem 0.75rem;
+    font: inherit;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--control-border);
+    border-radius: 0.6rem;
+  }
+  #prompt::placeholder { color: var(--muted); opacity: 1; }
+  button {
+    font: inherit;
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+    padding: 0.5rem 0.9rem;
+    border-radius: 0.6rem;
+    border: 1px solid var(--control-border);
+    background: var(--panel);
+    color: var(--text);
+    cursor: pointer;
+  }
+  button:hover:not(:disabled) { background: var(--assistant); }
+  button:disabled { opacity: .55; cursor: not-allowed; }
+  #send { background: var(--user); color: var(--user-text); border-color: var(--user); }
+  #send:hover:not(:disabled) { background: var(--user); filter: brightness(1.1); }
+  #stop:not(:disabled) { border-color: var(--err); color: var(--err); }
+
+  :focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+  #send:focus-visible { box-shadow: 0 0 0 2px var(--panel); }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; align-items: center; }
+  .hint { margin-left: auto; font-size: 0.8125rem; color: var(--muted); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  }
+  @media (forced-colors: active) {
+    .bubble { border: 1px solid CanvasText; }
+    #status .dot { forced-color-adjust: none; }
+  }
+  @media (max-width: 30rem) {
+    .msg { max-width: 95%; }
+    .hint { margin-left: 0; width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Chat Assistant</h1>
+    <div id="status" data-state="idle">
+      <span class="dot" aria-hidden="true"></span><span id="status-text">Ready</span>
+    </div>
+  </header>
+
+  <main id="main">
+    <div id="log" role="log" aria-live="off" aria-label="Conversation" tabindex="0"></div>
+
+    <section class="composer" aria-label="Message composer">
+      <label for="prompt" class="field-label">Message</label>
+      <div class="row">
+        <textarea id="prompt" rows="1" placeholder="Type a message…" aria-describedby="prompt-help" autocomplete="off"></textarea>
+        <button id="send" type="button">Send</button>
+      </div>
+      <div class="actions">
+        <button id="stop" type="button" disabled>Stop</button>
+        <button id="regenerate" type="button" disabled>Regenerate</button>
+        <span class="hint" id="prompt-help">Enter sends. Shift+Enter adds a new line.</span>
+      </div>
+    </section>
+  </main>
+
+  <!-- Screen reader announcements (visually hidden, present from page load) -->
+  <div id="announcer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+  <div id="alerter" class="sr-only" role="alert" aria-live="assertive" aria-atomic="true"></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var logEl = document.getElementById('log');
+  var promptEl = document.getElementById('prompt');
+  var sendBtn = document.getElementById('send');
+  var stopBtn = document.getElementById('stop');
+  var regenBtn = document.getElementById('regenerate');
+  var statusEl = document.getElementById('status');
+  var statusText = document.getElementById('status-text');
+  var announcer = document.getElementById('announcer');
+  var alerter = document.getElementById('alerter');
+
+  // history items: { role, content, status, error, el, bubble, tag }
+  // status (assistant only): 'streaming' | 'done' | 'stopped' | 'error'
+  var history = [];
+  var current = null; // the active request, or null when nothing is streaming
+
+  function announce(text, assertive) {
+    var region = assertive ? alerter : announcer;
+    region.textContent = '';
+    setTimeout(function () { region.textContent = text; }, 50);
+  }
+
+  function setStatus(state, text) {
+    statusEl.setAttribute('data-state', state);
+    statusText.textContent = text;
+  }
+
+  function updateControls() {
+    var active = document.activeElement;
+    var busy = current !== null;
+    var hasUser = history.some(function (m) { return m.role === 'user'; });
+    sendBtn.disabled = busy;
+    stopBtn.disabled = !busy;
+    regenBtn.disabled = !hasUser;
+    logEl.setAttribute('aria-busy', busy ? 'true' : 'false');
+    // Don't strand keyboard focus on a control that just became disabled.
+    if (active && active.disabled) promptEl.focus();
+  }
+
+  function isNearBottom() {
+    return logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 60;
+  }
+  function scrollToBottom() { logEl.scrollTop = logEl.scrollHeight; }
+
+  function buildMessageEl(msg) {
+    var wrap = document.createElement('article');
+    wrap.className = 'msg ' + msg.role;
+    var role = document.createElement('div');
+    role.className = 'role';
+    role.textContent = msg.role === 'user' ? 'You' : 'Assistant';
+    var bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = msg.content;
+    wrap.appendChild(role);
+    wrap.appendChild(bubble);
+    var tag = null;
+    if (msg.role === 'assistant') {
+      tag = document.createElement('div');
+      wrap.appendChild(tag);
+    }
+    msg.el = wrap;
+    msg.bubble = bubble;
+    msg.tag = tag;
+    refreshMessage(msg);
+    return wrap;
+  }
+
+  function setTag(tag, cls, symbol, text) {
+    tag.className = 'tag' + (cls ? ' ' + cls : '');
+    tag.textContent = '';
+    if (!text) return;
+    var s = document.createElement('span');
+    s.setAttribute('aria-hidden', 'true');
+    s.textContent = symbol + ' ';
+    tag.appendChild(s);
+    tag.appendChild(document.createTextNode(text));
+  }
+
+  function refreshMessage(msg) {
+    if (msg.role !== 'assistant') return;
+    var cls = 'msg assistant';
+    if (msg.status === 'streaming') cls += ' streaming';
+    if (msg.status === 'error') cls += ' error';
+    msg.el.className = cls;
+    var tag = msg.tag;
+    if (msg.status === 'stopped') {
+      setTag(tag, 'stopped', '■', msg.content ? 'Stopped — partial answer kept' : 'Stopped before any text arrived');
+    } else if (msg.status === 'error') {
+      setTag(tag, 'error', '⚠', 'Error: ' + (msg.error || 'Something went wrong') +
+        (msg.content ? ' (partial answer shown)' : ''));
+    } else if (msg.status === 'done') {
+      setTag(tag, 'done', '✓', msg.content ? 'Finished' : 'Finished (empty answer)');
+    } else if (msg.status === 'streaming') {
+      setTag(tag, '', '', 'Generating…');
+      tag.className = 'tag';
+    } else {
+      setTag(tag, '', '', '');
+    }
+  }
+
+  function renderAll() {
+    logEl.textContent = '';
+    if (history.length === 0) {
+      var empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.textContent = 'Start the conversation by sending a message.';
+      logEl.appendChild(empty);
+      return;
+    }
+    history.forEach(function (m) { logEl.appendChild(buildMessageEl(m)); });
+    scrollToBottom();
+  }
+
+  function addMessage(role, content, status) {
+    if (history.length === 0) logEl.textContent = ''; // remove placeholder
+    var msg = { role: role, content: content, status: status || null, error: null };
+    history.push(msg);
+    logEl.appendChild(buildMessageEl(msg));
+    scrollToBottom();
+    return msg;
+  }
+
+  function errText(e) {
+    if (!e) return 'Unknown error';
+    if (typeof e === 'string') return e;
+    return e.message || String(e);
+  }
+
+  function endRequest(req, status, errorMessage) {
+    if (current !== req) return;
+    req.closed = true;
+    current = null;
+    req.msg.status = status;
+    req.msg.error = errorMessage || null;
+    refreshMessage(req.msg);
+    if (status === 'done') {
+      setStatus('done', 'Finished');
+      announce('Assistant finished answering.');
+    } else if (status === 'error') {
+      setStatus('error', 'Error: ' + errorMessage);
+      announce('Error: ' + errorMessage, true);
+    }
+    updateControls();
+  }
+
+  // Send the current history (ending with a user message) and stream a reply.
+  function startStream() {
+    var apiMessages = history
+      .filter(function (m) { return m.content.trim() !== ''; })
+      .map(function (m) { return { role: m.role, content: m.content }; });
+
+    var msg = addMessage('assistant', '', 'streaming');
+    var req = { msg: msg, handle: null, closed: false };
+    current = req;
+    alerter.textContent = '';
+    setStatus('generating', 'Generating answer…');
+    announce('Assistant is generating an answer.');
+    updateControls();
+
+    try {
+      if (!window.ChatSDK || typeof window.ChatSDK.streamChat !== 'function') {
+        throw new Error('Chat service is not available');
+      }
+      req.handle = window.ChatSDK.streamChat(apiMessages, {
+        onToken: function (text) {
+          // Ignore late chunks from aborted / superseded streams.
+          if (req.closed || current !== req) return;
+          var stick = isNearBottom();
+          msg.content += text;
+          msg.bubble.textContent = msg.content;
+          if (stick) scrollToBottom();
+        },
+        onDone: function () {
+          if (req.closed || current !== req) return;
+          endRequest(req, 'done');
+        },
+        onError: function (e) {
+          if (req.closed || current !== req) return;
+          endRequest(req, 'error', errText(e));
+        }
+      });
+    } catch (e) {
+      endRequest(req, 'error', errText(e));
+    }
+  }
+
+  // Abort the active request (if any) without touching the UI state.
+  function abortCurrent() {
+    var req = current;
+    if (!req) return null;
+    req.closed = true; // from here on, late callbacks are ignored
+    current = null;
+    try { if (req.handle && typeof req.handle.abort === 'function') req.handle.abort(); } catch (e) {}
+    return req;
+  }
+
+  function send() {
+    if (current) return;
+    var text = promptEl.value.trim();
+    if (!text) { promptEl.focus(); return; }
+    promptEl.value = '';
+    autosize();
+    addMessage('user', text);
+    startStream();
+    promptEl.focus();
+  }
+
+  function stop() {
+    var req = abortCurrent();
+    if (!req) return;
+    req.msg.status = 'stopped';
+    refreshMessage(req.msg);
+    var text = req.msg.content ? 'Stopped — partial answer kept' : 'Stopped';
+    setStatus('stopped', text);
+    announce(req.msg.content ? 'Generation stopped. Partial answer kept.' : 'Generation stopped.');
+    updateControls();
+  }
+
+  function regenerate() {
+    var lastUser = -1;
+    for (var i = history.length - 1; i >= 0; i--) {
+      if (history[i].role === 'user') { lastUser = i; break; }
+    }
+    if (lastUser < 0) return;
+    abortCurrent(); // if still streaming, discard that answer
+    history.length = lastUser + 1; // drop the previous answer(s) to the last user message
+    renderAll();
+    startStream();
+  }
+
+  function autosize() {
+    promptEl.style.height = 'auto';
+    promptEl.style.height = Math.min(promptEl.scrollHeight + 2, 160) + 'px';
+  }
+
+  sendBtn.addEventListener('click', send);
+  stopBtn.addEventListener('click', stop);
+  regenBtn.addEventListener('click', regenerate);
+  promptEl.addEventListener('input', autosize);
+  promptEl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) {
+      e.preventDefault();
+      send();
+    }
+  });
+
+  renderAll();
+  setStatus('idle', 'Ready');
+  updateControls();
+  promptEl.focus();
+})();
+</script>
+</body>
+</html>
+```

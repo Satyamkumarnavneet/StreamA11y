@@ -1,0 +1,27 @@
+{
+ "started": "2026-11-10T06:10:26.306Z",
+ "playwright": "1.65.0",
+ "inDir": "corpus/repaired",
+ "files": 60,
+ "engines": {
+  "chromium": {
+   "version": "158.0.8127.18",
+   "done": 60,
+   "incompatible": 0,
+   "errors": 0
+  },
+  "firefox": {
+   "version": "159.0",
+   "done": 60,
+   "incompatible": 0,
+   "errors": 0
+  },
+  "webkit": {
+   "version": "27.2",
+   "done": 60,
+   "incompatible": 0,
+   "errors": 0
+  }
+ },
+ "finished": "2026-11-10T06:29:29.573Z"
+}

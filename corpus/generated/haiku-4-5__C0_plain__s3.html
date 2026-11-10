@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+            height: 90vh;
+            max-height: 800px;
+            background: white;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            line-height: 1.4;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant .message-content {
+            background: #f0f0f0;
+            color: #333;
+            border-bottom-left-radius: 4px;
+        }
+
+        .status {
+            text-align: center;
+            padding: 8px 12px;
+            font-size: 13px;
+            color: #666;
+            font-style: italic;
+            margin: 8px 0;
+        }
+
+        .status.generating {
+            color: #667eea;
+        }
+
+        .status.error {
+            color: #dc3545;
+            background: #ffe0e0;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .status.stopped {
+            color: #ff9800;
+        }
+
+        .status.done {
+            color: #4caf50;
+        }
+
+        .input-area {
+            padding: 16px;
+            background: #f9f9f9;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        #prompt {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 24px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: none;
+            max-height: 100px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        #prompt:focus {
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            outline: none;
+        }
+
+        #send {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        #send:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        #send:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #stop {
+            background: #ff9800;
+            color: white;
+            display: none;
+        }
+
+        #stop:hover {
+            background: #f57c00;
+            transform: translateY(-2px);
+        }
+
+        #regenerate {
+            background: #4caf50;
+            color: white;
+            display: none;
+        }
+
+        #regenerate:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #999;
+            text-align: center;
+            font-size: 18px;
+            padding: 40px;
+        }
+
+        @media (max-width: 600px) {
+            .message-content {
+                max-width: 85%;
+            }
+
+            button {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+
+            .input-area {
+                gap: 6px;
+                flex-wrap: wrap;
+            }
+
+            #prompt {
+                min-height: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">Chat Assistant</div>
+        <div class="messages-container" id="messagesContainer">
+            <div class="empty-state">Start a conversation</div>
+        </div>
+        <div class="input-area">
+            <textarea id="prompt" placeholder="Type your message..." rows="1"></textarea>
+            <div class="button-group">
+                <button id="send">Send</button>
+                <button id="stop">Stop</button>
+                <button id="regenerate">Regenerate</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const messagesContainer = document.getElementById('messagesContainer');
+        const promptInput = document.getElementById('prompt');
+        const sendBtn = document.getElementById('send');
+        const stopBtn = document.getElementById('stop');
+        const regenerateBtn = document.getElementById('regenerate');
+
+        let messages = [];
+        let isStreaming = false;
+        let currentStreamHandle = null;
+
+        function clearEmptyState() {
+            const emptyState = messagesContainer.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+        }
+
+        function addMessage(role, content) {
+            clearEmptyState();
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${role}`;
+            const contentEl = document.createElement('div');
+            contentEl.className = 'message-content';
+            contentEl.textContent = content;
+            messageEl.appendChild(contentEl);
+            messagesContainer.appendChild(messageEl);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            return contentEl;
+        }
+
+        function addStatus(text, type) {
+            clearEmptyState();
+            const statusEl = document.createElement('div');
+            statusEl.className = `status ${type}`;
+            statusEl.textContent = text;
+            statusEl.id = 'currentStatus';
+            messagesContainer.appendChild(statusEl);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            return statusEl;
+        }
+
+        function updateStatus(text, type) {
+            let statusEl = document.getElementById('currentStatus');
+            if (!statusEl) {
+                statusEl = addStatus(text, type);
+            } else {
+                statusEl.textContent = text;
+                statusEl.className = `status ${type}`;
+            }
+            return statusEl;
+        }
+
+        function removeStatus() {
+            const statusEl = document.getElementById('currentStatus');
+            if (statusEl) {
+                statusEl.remove();
+            }
+        }
+
+        function updatePromptHeight() {
+            promptInput.style.height = 'auto';
+            promptInput.style.height = Math.min(promptInput.scrollHeight, 100) + 'px';
+        }
+
+        function updateButtonStates() {
+            const hasMessages = messages.length > 0;
+            const lastIsUser = messages.length > 0 && messages[messages.length - 1].role === 'user';
+            
+            sendBtn.disabled = isStreaming;
+            stopBtn.style.display = isStreaming ? 'block' : 'none';
+            regenerateBtn.style.display = !isStreaming && lastIsUser ? 'block' : 'none';
+        }
+
+        async function sendMessage() {
+            const content = promptInput.value.trim();
+            if (!content || isStreaming) return;
+
+            messages.push({ role: 'user', content });
+            addMessage('user', content);
+            promptInput.value = '';
+            updatePromptHeight();
+            updateButtonStates();
+
+            streamAssistantResponse();
+        }
+
+        function streamAssistantResponse() {
+            if (isStreaming) return;
+
+            isStreaming = true;
+            updateButtonStates();
+            updateStatus('Generating...', 'generating');
+
+            let assistantContent = '';
+            let contentEl = null;
+
+            const onToken = (text) => {
+                if (!contentEl) {
+                    removeStatus();
+                    contentEl = addMessage('assistant', '');
+                }
+                assistantContent += text;
+                contentEl.textContent = assistantContent;
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            };
+
+            const onDone = () => {
+                isStreaming = false;
+                currentStreamHandle = null;
+                messages.push({ role: 'assistant', content: assistantContent });
+                removeStatus();
+                updateStatus('Done', 'done');
+                setTimeout(() => removeStatus(), 2000);
+                updateButtonStates();
+            };
+
+            const onError = (error) => {
+                isStreaming = false;
+                currentStreamHandle = null;
+                removeStatus();
+                const errorMsg = error instanceof Error ? error.message : String(error);
+                updateStatus(`Error: ${errorMsg}`, 'error');
+                updateButtonStates();
+            };
+
+            currentStreamHandle = window.ChatSDK.streamChat(messages, {
+                onToken,
+                onDone,
+                onError
+            });
+        }
+
+        function stopStreaming() {
+            if (currentStreamHandle) {
+                currentStreamHandle.abort();
+                currentStreamHandle = null;
+                isStreaming = false;
+                updateStatus('Stopped', 'stopped');
+                setTimeout(() => removeStatus(), 2000);
+                updateButtonStates();
+            }
+        }
+
+        function regenerateLastResponse() {
+            if (messages.length === 0) return;
+            
+            // Remove last assistant message if it exists
+            if (messages[messages.length - 1].role === 'assistant') {
+                messages.pop();
+            }
+
+            // Remove last message element if it's an assistant message
+            const lastMessage = messagesContainer.querySelector('.message:last-of-type');
+            if (lastMessage && lastMessage.classList.contains('assistant')) {
+                lastMessage.remove();
+            }
+
+            streamAssistantResponse();
+        }
+
+        promptInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey && !isStreaming) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        promptInput.addEventListener('input', updatePromptHeight);
+
+        sendBtn.addEventListener('click', sendMessage);
+        stopBtn.addEventListener('click', stopStreaming);
+        regenerateBtn.addEventListener('click', regenerateLastResponse);
+
+        updateButtonStates();
+    </script>
+</body>
+</html>

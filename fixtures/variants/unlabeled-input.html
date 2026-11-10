@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assistant</title>
+<style>
+body{font:16px/1.5 system-ui,sans-serif;max-width:760px;margin:24px auto;padding:0 16px;color:#1b1b1b;background:#fff}
+article{border-left:4px solid #2b6;padding:8px 12px;margin:12px 0}
+.user{border-left-color:#36c}
+button{font:inherit;padding:6px 12px;margin:4px 4px 4px 0}
+button:focus-visible,textarea:focus-visible{outline:3px solid #0645ad;outline-offset:2px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+</style>
+</head>
+<body>
+<main>
+<h1>Assistant</h1>
+<section id="log" aria-label="Conversation"></section>
+<p id="status" role="status"></p>
+<form id="form">
+<span>Message</span>
+<textarea id="prompt" rows="3"></textarea>
+<div>
+<button id="send" type="submit">Send</button>
+<button id="stop" type="button" aria-disabled="true">Stop</button>
+<button id="regenerate" type="button">Regenerate</button>
+</div>
+</form>
+</main>
+<script>
+(() => {
+  const FAULT = 'unlabeled-input';
+  const $ = (id) => document.getElementById(id);
+  const log = $('log'), status = $('status'), prompt = $('prompt');
+  const send = $('send'), stop = $('stop'), regen = $('regenerate');
+  const history = [];
+  let current = null, counter = 0, lastQuestion = '', sharedBody = null;
+
+  function say(text) { status.textContent = text; }
+
+  function addUser(text) {
+    const a = document.createElement('article');
+    a.className = 'user';
+    const h = document.createElement('h2'); h.textContent = 'You';
+    const p = document.createElement('p'); p.textContent = text;
+    a.append(h, p); log.append(a);
+  }
+
+  function finish(rec, kind) {
+    rec.phase = kind;
+    if (FAULT !== 'busy-stuck') rec.article.setAttribute('aria-busy', 'false');
+    stop.setAttribute('aria-disabled', 'true');
+    if (FAULT === 'focus-drop') { send.hidden = false; stop.hidden = true; }
+    history.push({ role: 'assistant', content: rec.text });
+    if (FAULT === 'no-terminal-status') return;
+    if (kind === 'complete') say('Answer ' + rec.id + ' complete.');
+    if (kind === 'stopped') say('Answer ' + rec.id + ' stopped. The partial answer is kept.');
+    if (kind === 'error') say('Answer ' + rec.id + ' failed because the connection was lost. The partial answer is kept.');
+  }
+
+  function start(question, isRegen) {
+    if (current && current.phase === 'streaming') stopCurrent();
+    const id = ++counter;
+    const article = document.createElement('article');
+    if (FAULT !== 'token-live') article.setAttribute('aria-busy', 'true');
+    const h = document.createElement('h2'); h.textContent = 'Answer ' + id;
+    const body = document.createElement('div');
+    if (FAULT === 'token-live') body.setAttribute('aria-live', 'polite');
+    article.append(h, body); log.append(article);
+    const rec = { id, article, body, text: '', phase: 'streaming', handle: null };
+    current = rec; sharedBody = body;
+    stop.setAttribute('aria-disabled', 'false');
+    if (FAULT === 'focus-drop') { send.hidden = true; stop.hidden = false; }
+    if (FAULT !== 'no-start-status') say((isRegen ? 'Regenerating answer ' : 'Generating answer ') + id + '.');
+    const messages = history.concat([{ role: 'user', content: question }]);
+    rec.handle = window.ChatSDK.streamChat(messages, {
+      onToken(t) {
+        if (FAULT === 'stale-leak') {
+          sharedBody.append(document.createTextNode(t));
+          return;
+        }
+        if (rec !== current || rec.phase !== 'streaming') return;
+        rec.text += t;
+        if (FAULT === 'token-live') rec.body.textContent = rec.text;
+        else rec.body.append(document.createTextNode(t));
+        if (FAULT === 'focus-steal') { rec.body.tabIndex = -1; rec.body.focus(); }
+      },
+      onDone() { if (rec === current && rec.phase === 'streaming') finish(rec, 'complete'); },
+      onError() { if (rec === current && rec.phase === 'streaming') finish(rec, 'error'); }
+    });
+  }
+
+  function stopCurrent() {
+    const rec = current;
+    if (!rec || rec.phase !== 'streaming') return;
+    rec.handle.abort();
+    if (FAULT === 'discard-partial') { rec.body.textContent = ''; rec.text = ''; }
+    finish(rec, 'stopped');
+  }
+
+  $('form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const q = prompt.value.trim();
+    if (!q) return;
+    lastQuestion = q; prompt.value = '';
+    history.push({ role: 'user', content: q });
+    addUser(q);
+    start(q, false);
+  });
+  stop.addEventListener('click', () => { if (stop.getAttribute('aria-disabled') !== 'true') stopCurrent(); });
+  regen.addEventListener('click', () => { if (lastQuestion) start(lastQuestion, true); });
+})();
+</script>
+</body>
+</html>

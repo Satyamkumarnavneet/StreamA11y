@@ -1,0 +1,2 @@
+# Preserve exact source/data bytes so release SHA-256 values survive checkout.
+* -text

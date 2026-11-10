@@ -1,0 +1,487 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chat Assistant</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: #f4f5f7;
+    color: #1d1f23;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Visually hidden but available to screen readers */
+  .sr-only {
+    position: absolute !important;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Skip link */
+  .skip-link {
+    position: absolute;
+    top: 8px; left: 8px;
+    background: #ffffff;
+    color: #1d1f23;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 2px solid #1a63c4;
+    z-index: 10;
+    transform: translateY(-200%);
+  }
+  .skip-link:focus { transform: translateY(0); }
+
+  header {
+    padding: 12px 20px;
+    background: #ffffff;
+    border-bottom: 1px solid #767d8a;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  header h1 { font-size: 1.1rem; margin: 0; }
+  #status {
+    font-size: 0.85rem;
+    color: #4a5160;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  #status.generating::before {
+    content: "";
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #1a63c4;
+    animation: pulse 1s infinite ease-in-out;
+  }
+  #status.error { color: #b42318; font-weight: 600; }
+  #status.stopped { color: #4a5160; font-weight: 600; }
+  #status.finished { color: #1d6b3a; font-weight: 600; }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+  }
+
+  main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+  }
+  main:focus-visible { outline: 3px solid #1a63c4; outline-offset: -3px; }
+
+  #conversation {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .empty {
+    text-align: center;
+    color: #4a5160;
+    margin-top: 40px;
+  }
+  .message {
+    display: flex;
+    flex-direction: column;
+    max-width: 85%;
+  }
+  .message.user { align-self: flex-end; align-items: flex-end; }
+  .message.assistant { align-self: flex-start; align-items: flex-start; }
+  .role {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #4a5160;
+    margin: 0 4px 3px;
+  }
+  .bubble {
+    padding: 10px 14px;
+    border-radius: 12px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.45;
+    min-height: 1.45em;
+  }
+  .message.user .bubble {
+    background: #1a63c4;
+    color: #ffffff;
+    border-bottom-right-radius: 4px;
+  }
+  .message.assistant .bubble {
+    background: #ffffff;
+    color: #1d1f23;
+    border: 1px solid #767d8a;
+    border-bottom-left-radius: 4px;
+  }
+  .message.assistant.streaming .bubble::after {
+    content: "▍";
+    animation: blink 1s steps(2, start) infinite;
+    margin-left: 2px;
+    color: #1a63c4;
+  }
+  @keyframes blink {
+    to { visibility: hidden; }
+  }
+
+  footer {
+    background: #ffffff;
+    border-top: 1px solid #767d8a;
+    padding: 12px 20px;
+  }
+  .composer {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  #prompt {
+    width: 100%;
+    min-height: 60px;
+    max-height: 200px;
+    resize: vertical;
+    padding: 10px 12px;
+    border: 1px solid #767d8a;
+    border-radius: 8px;
+    font: inherit;
+    line-height: 1.4;
+    color: #1d1f23;
+    background: #ffffff;
+  }
+  #prompt:focus-visible { outline: 3px solid #1a63c4; outline-offset: 1px; }
+  .hint {
+    font-size: 0.8rem;
+    color: #4a5160;
+    margin: 0;
+  }
+  .controls {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+  button {
+    font: inherit;
+    min-height: 40px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid #767d8a;
+    background: #ffffff;
+    color: #1d1f23;
+    cursor: pointer;
+  }
+  button:hover:not([aria-disabled="true"]) { background: #eef1f5; }
+  button:focus-visible { outline: 3px solid #1a63c4; outline-offset: 2px; }
+  button[aria-disabled="true"] { opacity: 0.5; cursor: not-allowed; }
+  #send {
+    background: #1a63c4;
+    border-color: #1a63c4;
+    color: #ffffff;
+  }
+  #send:hover:not([aria-disabled="true"]) { background: #1554ac; }
+  #stop { border-color: #b42318; color: #b42318; }
+  #stop:hover:not([aria-disabled="true"]) { background: #fdecea; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation: none !important;
+      transition: none !important;
+    }
+    #status.generating::before { opacity: 1; }
+    .message.assistant.streaming .bubble::after { visibility: visible; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+  <a class="skip-link" href="#prompt">Skip to message box</a>
+
+  <header>
+    <h1>Chat Assistant</h1>
+    <div id="status" role="status" aria-live="polite">Idle</div>
+  </header>
+
+  <main id="chat-scroll" tabindex="0" aria-labelledby="conversation-heading">
+    <h2 id="conversation-heading" class="sr-only">Conversation</h2>
+    <div id="conversation" role="log" aria-live="off" aria-busy="false">
+      <div class="empty" id="empty-state">Ask a question to get started.</div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="composer">
+      <label for="prompt" class="sr-only">Your message</label>
+      <textarea id="prompt" aria-describedby="prompt-hint"></textarea>
+      <p class="hint" id="prompt-hint">Press Enter to send, or Shift+Enter for a new line.</p>
+      <div class="controls">
+        <button id="regenerate" type="button" aria-disabled="true">Regenerate</button>
+        <button id="stop" type="button" aria-disabled="true">Stop</button>
+        <button id="send" type="button" aria-disabled="false">Send</button>
+      </div>
+    </div>
+  </footer>
+
+<script>
+(function () {
+  const conversationEl = document.getElementById('conversation');
+  const scrollEl = document.getElementById('chat-scroll');
+  const statusEl = document.getElementById('status');
+  const promptEl = document.getElementById('prompt');
+  const sendBtn = document.getElementById('send');
+  const stopBtn = document.getElementById('stop');
+  const regenBtn = document.getElementById('regenerate');
+
+  // Conversation history: [{role: 'user'|'assistant', content: string}]
+  const history = [];
+
+  // The stream currently in progress, or null.
+  let current = null;
+  let runCounter = 0;
+
+  function scrollToBottom(force) {
+    const nearBottom = scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight < 80;
+    if (force || nearBottom) {
+      scrollEl.scrollTop = scrollEl.scrollHeight;
+    }
+  }
+
+  function removeEmptyState() {
+    const empty = document.getElementById('empty-state');
+    if (empty) empty.remove();
+  }
+
+  function createBubble(role, content) {
+    const wrap = document.createElement('div');
+    wrap.className = 'message ' + role;
+    wrap.setAttribute('role', 'group');
+    wrap.setAttribute('aria-label', role === 'user' ? 'Your message' : 'Assistant answer');
+
+    const label = document.createElement('div');
+    label.className = 'role';
+    label.setAttribute('aria-hidden', 'true');
+    label.textContent = role === 'user' ? 'You' : 'Assistant';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = content; // textContent: never interpret text as HTML
+
+    wrap.appendChild(label);
+    wrap.appendChild(bubble);
+    return { wrap, bubble };
+  }
+
+  function appendMessage(role, content) {
+    removeEmptyState();
+    const { wrap, bubble } = createBubble(role, content);
+    conversationEl.appendChild(wrap);
+    return { wrap, bubble };
+  }
+
+  function renderAll() {
+    conversationEl.innerHTML = '';
+    if (history.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.id = 'empty-state';
+      empty.textContent = 'Ask a question to get started.';
+      conversationEl.appendChild(empty);
+      return;
+    }
+    for (const m of history) {
+      appendMessage(m.role, m.content);
+    }
+    scrollToBottom(true);
+  }
+
+  // kind: 'generating' | 'stopped' | 'finished' | 'error' | '' (idle)
+  function setStatus(text, kind) {
+    statusEl.textContent = text;
+    statusEl.className = kind || '';
+    if (kind === 'generating') {
+      statusEl.classList.add('generating');
+    }
+  }
+
+  function hasUserMessage() {
+    return history.some(m => m.role === 'user');
+  }
+
+  // Use aria-disabled instead of the disabled attribute so focused controls
+  // do not drop focus when they become unavailable. Handlers also guard.
+  function setDisabled(btn, isDisabled) {
+    btn.setAttribute('aria-disabled', isDisabled ? 'true' : 'false');
+  }
+
+  function isDisabled(btn) {
+    return btn.getAttribute('aria-disabled') === 'true';
+  }
+
+  function updateButtons() {
+    const busy = current !== null;
+    setDisabled(sendBtn, busy);
+    setDisabled(stopBtn, !busy);
+    setDisabled(regenBtn, busy || !hasUserMessage());
+    conversationEl.setAttribute('aria-busy', busy ? 'true' : 'false');
+  }
+
+  // Finish the given run: record the answer (if any), update UI and status.
+  // Focus is intentionally not moved here, so the user's current control keeps focus.
+  function finishRun(run, statusText, kind) {
+    run.active = false;
+    if (current === run) current = null;
+
+    if (run.text.length > 0) {
+      history.push({ role: 'assistant', content: run.text });
+    } else {
+      // Nothing was shown; remove the empty placeholder bubble.
+      run.wrap.remove();
+    }
+
+    run.wrap.classList.remove('streaming');
+    setStatus(statusText, kind);
+    updateButtons();
+  }
+
+  function startStream() {
+    const run = {
+      id: ++runCounter,
+      text: '',
+      active: true,
+      handle: null,
+      wrap: null,
+      bubble: null
+    };
+
+    const placeholder = appendMessage('assistant', '');
+    run.wrap = placeholder.wrap;
+    run.bubble = placeholder.bubble;
+    run.wrap.classList.add('streaming');
+    scrollToBottom(true);
+
+    current = run;
+    setStatus('Generating…', 'generating');
+    updateButtons();
+
+    // Send a snapshot of the history so later edits cannot affect this request.
+    const messages = history.map(m => ({ role: m.role, content: m.content }));
+
+    try {
+      if (!window.ChatSDK || typeof window.ChatSDK.streamChat !== 'function') {
+        throw new Error('Chat service is not available.');
+      }
+
+      run.handle = window.ChatSDK.streamChat(messages, {
+        onToken(text) {
+          // Ignore tokens after the user stopped (in-flight chunks may still arrive).
+          if (!run.active) return;
+          run.text += String(text);
+          run.bubble.textContent = run.text;
+          scrollToBottom(false);
+        },
+        onDone() {
+          if (!run.active) return;
+          finishRun(run, 'Finished', 'finished');
+        },
+        onError(error) {
+          if (!run.active) return;
+          const msg = (error && error.message) ? error.message : String(error || 'Unknown error');
+          finishRun(run, 'Error: ' + msg, 'error');
+        }
+      });
+    } catch (err) {
+      if (run.active) {
+        const msg = (err && err.message) ? err.message : String(err);
+        finishRun(run, 'Error: ' + msg, 'error');
+      }
+    }
+  }
+
+  function sendMessage() {
+    if (current !== null) return;
+    const text = promptEl.value.trim();
+    if (!text) return;
+
+    history.push({ role: 'user', content: text });
+    appendMessage('user', text);
+    promptEl.value = '';
+    scrollToBottom(true);
+    startStream();
+  }
+
+  function stopStream() {
+    const run = current;
+    if (!run) return;
+
+    // Mark inactive first so no further tokens are applied, then ask the server to stop.
+    run.active = false;
+    try {
+      if (run.handle && typeof run.handle.abort === 'function') {
+        run.handle.abort();
+      }
+    } catch (e) {
+      // Ignore abort failures; the local state is already stopped.
+    }
+
+    // Keep the partial answer that was already shown.
+    finishRun(run, 'Stopped', 'stopped');
+  }
+
+  function regenerate() {
+    if (current !== null || !hasUserMessage()) return;
+
+    // Drop the last assistant answer, if any, so we answer the last user message again.
+    if (history.length > 0 && history[history.length - 1].role === 'assistant') {
+      history.pop();
+      renderAll();
+    }
+
+    // The last message must now be the user message to answer.
+    if (history.length === 0 || history[history.length - 1].role !== 'user') {
+      setStatus('Idle');
+      updateButtons();
+      return;
+    }
+
+    startStream();
+  }
+
+  sendBtn.addEventListener('click', function () {
+    if (isDisabled(sendBtn)) return;
+    sendMessage();
+  });
+  stopBtn.addEventListener('click', function () {
+    if (isDisabled(stopBtn)) return;
+    stopStream();
+  });
+  regenBtn.addEventListener('click', function () {
+    if (isDisabled(regenBtn)) return;
+    regenerate();
+  });
+
+  promptEl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  renderAll();
+  setStatus('Idle');
+  updateButtons();
+})();
+</script>
+</body>
+</html>
+```

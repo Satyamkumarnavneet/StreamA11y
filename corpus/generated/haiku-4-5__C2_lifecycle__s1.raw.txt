@@ -1,0 +1,484 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Assistant</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+            background: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.assistant {
+            justify-content: flex-start;
+        }
+
+        .message-avatar {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 14px;
+        }
+
+        .message.user .message-avatar {
+            background: #0084ff;
+            order: 2;
+        }
+
+        .message.assistant .message-avatar {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: #0084ff;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant .message-content {
+            background: #e8e8e8;
+            color: #333;
+            border-bottom-left-radius: 4px;
+        }
+
+        .input-area {
+            border-top: 1px solid #ddd;
+            padding: 16px;
+            background: white;
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        #prompt {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: none;
+            max-height: 120px;
+            min-height: 44px;
+        }
+
+        #prompt:focus {
+            outline: none;
+            border-color: #0084ff;
+            box-shadow: 0 0 0 3px rgba(0, 132, 255, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s, opacity 0.2s;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #send {
+            background: #0084ff;
+            color: white;
+        }
+
+        #send:hover:not(:disabled) {
+            background: #0073e6;
+        }
+
+        #send:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #stop, #regenerate {
+            background: #f0f0f0;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        #stop:hover:not(:disabled), #regenerate:hover:not(:disabled) {
+            background: #e0e0e0;
+        }
+
+        #stop:disabled, #regenerate:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status-message {
+            font-size: 12px;
+            color: #666;
+            padding: 0 4px;
+            min-height: 18px;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #999;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .empty-state p {
+            margin: 0;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="messages" id="messages" role="log" aria-label="Chat conversation" aria-live="polite" aria-atomic="false">
+            <div class="empty-state">
+                <p>Start a conversation</p>
+            </div>
+        </div>
+        
+        <div class="input-area">
+            <div class="input-wrapper">
+                <textarea
+                    id="prompt"
+                    placeholder="Type your message..."
+                    aria-label="Message input"
+                    aria-describedby="status"
+                ></textarea>
+                <div id="status" class="status-message" role="status" aria-live="polite" aria-atomic="true"></div>
+            </div>
+            <div class="button-group">
+                <button id="send" aria-label="Send message">Send</button>
+                <button id="stop" disabled aria-label="Stop generating response">Stop</button>
+                <button id="regenerate" disabled aria-label="Regenerate last response">Regenerate</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const messagesContainer = document.getElementById('messages');
+        const promptInput = document.getElementById('prompt');
+        const sendBtn = document.getElementById('send');
+        const stopBtn = document.getElementById('stop');
+        const regenerateBtn = document.getElementById('regenerate');
+        const statusMessage = document.getElementById('status');
+
+        let conversationHistory = [];
+        let currentStreamHandle = null;
+        let isStreaming = false;
+        let currentAssistantMessageElement = null;
+        let lastUserMessage = null;
+
+        function addMessage(role, content) {
+            if (messagesContainer.querySelector('.empty-state')) {
+                messagesContainer.innerHTML = '';
+            }
+
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${role}`;
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = role === 'user' ? 'You' : 'AI';
+            avatar.setAttribute('aria-hidden', 'true');
+
+            const contentEl = document.createElement('div');
+            contentEl.className = 'message-content';
+            contentEl.textContent = content;
+
+            messageEl.appendChild(avatar);
+            messageEl.appendChild(contentEl);
+            messagesContainer.appendChild(messageEl);
+
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            return contentEl;
+        }
+
+        function updateStatus(message) {
+            statusMessage.textContent = message;
+        }
+
+        function sendMessage() {
+            const message = promptInput.value.trim();
+            if (!message || isStreaming) return;
+
+            lastUserMessage = message;
+            conversationHistory.push({ role: 'user', content: message });
+            addMessage('user', message);
+
+            promptInput.value = '';
+            promptInput.style.height = 'auto';
+            sendBtn.disabled = true;
+            stopBtn.disabled = false;
+            regenerateBtn.disabled = true;
+
+            updateStatus('Generating response...');
+            isStreaming = true;
+
+            currentAssistantMessageElement = addMessage('assistant', '');
+            currentAssistantMessageElement.setAttribute('aria-live', 'off');
+
+            const onToken = (text) => {
+                if (!isStreaming) return;
+                currentAssistantMessageElement.textContent += text;
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            };
+
+            const onDone = () => {
+                if (!isStreaming) return;
+                isStreaming = false;
+                currentStreamHandle = null;
+
+                const assistantMessage = currentAssistantMessageElement.textContent;
+                conversationHistory.push({ role: 'assistant', content: assistantMessage });
+
+                sendBtn.disabled = false;
+                stopBtn.disabled = true;
+                regenerateBtn.disabled = false;
+
+                updateStatus('Response complete');
+                currentAssistantMessageElement.removeAttribute('aria-live');
+                promptInput.focus();
+            };
+
+            const onError = (error) => {
+                if (!isStreaming) return;
+                isStreaming = false;
+                currentStreamHandle = null;
+
+                sendBtn.disabled = false;
+                stopBtn.disabled = true;
+                regenerateBtn.disabled = false;
+
+                updateStatus(`Error: ${error.message || 'Failed to generate response'}`);
+                currentAssistantMessageElement.removeAttribute('aria-live');
+                promptInput.focus();
+            };
+
+            currentStreamHandle = window.ChatSDK.streamChat(conversationHistory, {
+                onToken,
+                onDone,
+                onError
+            });
+        }
+
+        function stopGenerating() {
+            if (!isStreaming || !currentStreamHandle) return;
+
+            isStreaming = false;
+            currentStreamHandle.abort();
+            currentStreamHandle = null;
+
+            const assistantMessage = currentAssistantMessageElement.textContent;
+            conversationHistory[conversationHistory.length - 1] = {
+                role: 'assistant',
+                content: assistantMessage
+            };
+
+            sendBtn.disabled = false;
+            stopBtn.disabled = true;
+            regenerateBtn.disabled = false;
+
+            updateStatus('Response stopped');
+            currentAssistantMessageElement.removeAttribute('aria-live');
+            promptInput.focus();
+        }
+
+        function regenerateResponse() {
+            if (isStreaming || !lastUserMessage) return;
+
+            conversationHistory.pop();
+            const messageElements = document.querySelectorAll('.message');
+            if (messageElements.length > 0) {
+                messageElements[messageElements.length - 1].remove();
+            }
+
+            conversationHistory.push({ role: 'user', content: lastUserMessage });
+
+            sendBtn.disabled = true;
+            stopBtn.disabled = false;
+            regenerateBtn.disabled = true;
+
+            updateStatus('Generating response...');
+            isStreaming = true;
+
+            currentAssistantMessageElement = addMessage('assistant', '');
+            currentAssistantMessageElement.setAttribute('aria-live', 'off');
+
+            const onToken = (text) => {
+                if (!isStreaming) return;
+                currentAssistantMessageElement.textContent += text;
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            };
+
+            const onDone = () => {
+                if (!isStreaming) return;
+                isStreaming = false;
+                currentStreamHandle = null;
+
+                const assistantMessage = currentAssistantMessageElement.textContent;
+                conversationHistory.push({ role: 'assistant', content: assistantMessage });
+
+                sendBtn.disabled = false;
+                stopBtn.disabled = true;
+                regenerateBtn.disabled = false;
+
+                updateStatus('Response complete');
+                currentAssistantMessageElement.removeAttribute('aria-live');
+                promptInput.focus();
+            };
+
+            const onError = (error) => {
+                if (!isStreaming) return;
+                isStreaming = false;
+                currentStreamHandle = null;
+
+                sendBtn.disabled = false;
+                stopBtn.disabled = true;
+                regenerateBtn.disabled = false;
+
+                updateStatus(`Error: ${error.message || 'Failed to generate response'}`);
+                currentAssistantMessageElement.removeAttribute('aria-live');
+                promptInput.focus();
+            };
+
+            currentStreamHandle = window.ChatSDK.streamChat(conversationHistory, {
+                onToken,
+                onDone,
+                onError
+            });
+        }
+
+        function updateTextareaHeight() {
+            promptInput.style.height = 'auto';
+            const newHeight = Math.min(promptInput.scrollHeight, 120);
+            promptInput.style.height = newHeight + 'px';
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+        stopBtn.addEventListener('click', stopGenerating);
+        regenerateBtn.addEventListener('click', regenerateResponse);
+
+        promptInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey && !isStreaming) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        promptInput.addEventListener('input', updateTextareaHeight);
+
+        promptInput.addEventListener('input', () => {
+            sendBtn.disabled = !promptInput.value.trim() || isStreaming;
+        });
+
+        updateStatus('Ready to chat');
+        promptInput.focus();
+    </script>
+</body>
+</html>
+```

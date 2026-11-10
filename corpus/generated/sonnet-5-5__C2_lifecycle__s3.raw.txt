@@ -1,0 +1,433 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat assistant</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html { color-scheme: light; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #1a1a1a;
+    background: #ffffff;
+  }
+  .app {
+    display: flex;
+    flex-direction: column;
+    max-width: 52rem;
+    margin: 0 auto;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 32rem;
+    padding: 0.5rem 1rem 1rem;
+  }
+  header h1 { font-size: 1.375rem; margin: 0.5rem 0; }
+  main { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+
+  .transcript {
+    flex: 1 1 0;
+    min-height: 8rem;
+    overflow: auto;
+    border: 2px solid #595959;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    background: #ffffff;
+  }
+  .empty { margin: 0; color: #404040; }
+  .messages { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.75rem; }
+  .message {
+    max-width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 2px solid #595959;
+    border-radius: 0.5rem;
+    overflow-wrap: anywhere;
+  }
+  .message.user { background: #e8f0fe; border-color: #1a4fa0; margin-left: 10%; }
+  .message.assistant { background: #f3f3f3; margin-right: 10%; }
+  .message[data-state="error"] { border-color: #9b1c1c; }
+  .message[data-state="stopped"] { border-style: dashed; }
+  .meta { font-size: 0.875rem; margin-bottom: 0.25rem; }
+  .who { font-weight: 700; }
+  .badge { color: #333333; }
+  .text { white-space: pre-wrap; margin: 0; }
+  .note { margin: 0; font-style: italic; color: #404040; }
+  .err { margin: 0.25rem 0 0; color: #8a1818; font-weight: 600; }
+  .note[hidden], .err[hidden], .empty[hidden] { display: none; }
+
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+    padding: 0.5rem 0.75rem;
+    border: 2px solid #595959;
+    border-left-width: 8px;
+    border-radius: 0.375rem;
+    background: #f1f3f4;
+    color: #1a1a1a;
+    min-height: 2.75rem;
+  }
+  .status .icon { font-weight: 700; flex: none; min-width: 1.25rem; text-align: center; }
+  .status[data-kind="generating"] { border-color: #0b57d0; }
+  .status[data-kind="generating"] .icon { animation: pulse 1.2s ease-in-out infinite; color: #0b57d0; }
+  .status[data-kind="stopped"] { border-color: #8a5a00; }
+  .status[data-kind="done"] { border-color: #146c2e; }
+  .status[data-kind="error"] { border-color: #9b1c1c; background: #fdecea; }
+  @keyframes pulse { 50% { opacity: 0.3; } }
+  @media (prefers-reduced-motion: reduce) {
+    .status[data-kind="generating"] .icon { animation: none; }
+  }
+
+  .composer label { display: block; font-weight: 600; margin-bottom: 0.25rem; }
+  .hint { margin: 0 0 0.25rem; font-size: 0.875rem; color: #404040; }
+  textarea {
+    width: 100%;
+    font: inherit;
+    color: #1a1a1a;
+    background: #ffffff;
+    border: 2px solid #595959;
+    border-radius: 0.375rem;
+    padding: 0.5rem;
+    min-height: 4.5rem;
+    resize: vertical;
+  }
+  .actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+  button {
+    font: inherit;
+    font-weight: 600;
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+    padding: 0.5rem 1.1rem;
+    border: 2px solid #595959;
+    border-radius: 0.5rem;
+    background: #ffffff;
+    color: #1a1a1a;
+    cursor: pointer;
+  }
+  #send { background: #0b57d0; border-color: #0b57d0; color: #ffffff; }
+  #stop { border-color: #9b1c1c; color: #8a1818; }
+  #regenerate { border-color: #1a4fa0; color: #0a3a85; }
+  button[aria-disabled="true"] {
+    background: #e6e6e6;
+    border-color: #8a8a8a;
+    color: #595959;
+    cursor: not-allowed;
+  }
+  button:focus-visible, textarea:focus-visible, .transcript:focus-visible {
+    outline: 3px solid #002f8a;
+    outline-offset: 2px;
+  }
+  @media (max-width: 30rem) {
+    .message.user { margin-left: 0; }
+    .message.assistant { margin-right: 0; }
+    .actions button { flex: 1 1 auto; }
+  }
+  @media (forced-colors: active) {
+    .message, .status, .transcript, textarea, button { border-color: CanvasText; }
+    button[aria-disabled="true"] { color: GrayText; border-color: GrayText; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Chat assistant</h1>
+  </header>
+
+  <main>
+    <div class="transcript" id="transcript" role="region" aria-label="Conversation" tabindex="0">
+      <p class="empty" id="empty">No messages yet. Type a message below to start.</p>
+      <ol class="messages" id="messages"></ol>
+    </div>
+
+    <p class="status" id="status" role="status" aria-live="polite" aria-atomic="true" data-kind="idle"><span class="icon" id="status-icon" aria-hidden="true">○</span><span id="status-text">Ready.</span></p>
+
+    <form class="composer" id="composer" aria-label="Send a message" novalidate>
+      <label for="prompt">Message</label>
+      <p class="hint" id="prompt-hint">Press Enter to send. Press Shift+Enter for a new line.</p>
+      <textarea id="prompt" name="prompt" rows="3" autocomplete="off" aria-describedby="prompt-hint"></textarea>
+      <div class="actions">
+        <button type="submit" id="send" aria-disabled="false">Send</button>
+        <button type="button" id="stop" aria-disabled="true">Stop</button>
+        <button type="button" id="regenerate" aria-disabled="true">Regenerate</button>
+      </div>
+    </form>
+  </main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var transcript = document.getElementById('transcript');
+  var list = document.getElementById('messages');
+  var emptyNote = document.getElementById('empty');
+  var statusBox = document.getElementById('status');
+  var statusIcon = document.getElementById('status-icon');
+  var statusText = document.getElementById('status-text');
+  var composer = document.getElementById('composer');
+  var prompt = document.getElementById('prompt');
+  var sendBtn = document.getElementById('send');
+  var stopBtn = document.getElementById('stop');
+  var regenBtn = document.getElementById('regenerate');
+
+  var messages = [];   // {role, content, state, el, textNode, badge, note, err}
+  var current = null;  // active generation: {msg, handle, closed}
+
+  var ICONS = { idle: '○', generating: '●', stopped: '■', done: '✓', error: '!' };
+  var BADGES = { streaming: '— Generating', stopped: '— Stopped', done: '— Finished', error: '— Error' };
+
+  function setStatus(kind, text) {
+    statusBox.setAttribute('data-kind', kind);
+    statusIcon.textContent = ICONS[kind] || '○';
+    statusText.textContent = text;
+  }
+
+  function lastUserIndex() {
+    for (var i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') return i;
+    }
+    return -1;
+  }
+
+  // Buttons use aria-disabled (not the disabled attribute) so a focused button
+  // never loses keyboard focus when its state changes.
+  function updateControls() {
+    var generating = !!current;
+    sendBtn.setAttribute('aria-disabled', generating ? 'true' : 'false');
+    stopBtn.setAttribute('aria-disabled', generating ? 'false' : 'true');
+    regenBtn.setAttribute('aria-disabled', lastUserIndex() === -1 ? 'true' : 'false');
+    emptyNote.hidden = messages.length > 0;
+  }
+
+  function isDisabled(btn) { return btn.getAttribute('aria-disabled') === 'true'; }
+
+  function withAutoScroll(fn) {
+    var near = transcript.scrollHeight - transcript.scrollTop - transcript.clientHeight < 48;
+    fn();
+    if (near) transcript.scrollTop = transcript.scrollHeight;
+  }
+
+  function buildMessage(role, content) {
+    var m = { role: role, content: content, state: role === 'assistant' ? 'streaming' : 'done' };
+    var li = document.createElement('li');
+    li.className = 'message ' + role;
+
+    var meta = document.createElement('div');
+    meta.className = 'meta';
+    var who = document.createElement('span');
+    who.className = 'who';
+    who.textContent = role === 'user' ? 'You' : 'Assistant';
+    meta.appendChild(who);
+
+    if (role === 'assistant') {
+      meta.appendChild(document.createTextNode(' '));
+      m.badge = document.createElement('span');
+      m.badge.className = 'badge';
+      meta.appendChild(m.badge);
+    }
+    li.appendChild(meta);
+
+    if (role === 'assistant') {
+      m.note = document.createElement('p');
+      m.note.className = 'note';
+      li.appendChild(m.note);
+    }
+
+    var body = document.createElement('div');
+    body.className = 'text';
+    m.textNode = document.createTextNode(content);
+    body.appendChild(m.textNode);
+    li.appendChild(body);
+
+    if (role === 'assistant') {
+      m.err = document.createElement('p');
+      m.err.className = 'err';
+      m.err.hidden = true;
+      li.appendChild(m.err);
+    }
+
+    m.el = li;
+    return m;
+  }
+
+  function refreshMessage(m) {
+    if (m.role !== 'assistant') return;
+    m.el.setAttribute('data-state', m.state);
+    // aria-busy only while this answer streams; always removed otherwise.
+    if (m.state === 'streaming') m.el.setAttribute('aria-busy', 'true');
+    else m.el.removeAttribute('aria-busy');
+    m.badge.textContent = BADGES[m.state] || '';
+    if (m.content.length > 0) {
+      m.note.hidden = true;
+    } else {
+      m.note.hidden = false;
+      m.note.textContent =
+        m.state === 'streaming' ? 'Waiting for the first words…' :
+        m.state === 'stopped' ? 'Stopped before any text arrived.' :
+        m.state === 'error' ? 'No text was received.' : '(Empty answer)';
+    }
+  }
+
+  function addMessage(m) {
+    messages.push(m);
+    refreshMessage(m);
+    list.appendChild(m.el);
+    transcript.scrollTop = transcript.scrollHeight;
+  }
+
+  function apiMessages() {
+    var out = [];
+    for (var i = 0; i < messages.length; i++) {
+      var m = messages[i];
+      if (m.role === 'assistant' && !m.content) continue;
+      out.push({ role: m.role, content: m.content });
+    }
+    return out;
+  }
+
+  // Detach the active generation so nothing it delivers can change the transcript.
+  function detachCurrent() {
+    var g = current;
+    if (!g) return null;
+    g.closed = true;
+    current = null;
+    try { if (g.handle && typeof g.handle.abort === 'function') g.handle.abort(); } catch (e) { /* ignore */ }
+    return g;
+  }
+
+  function finish(g, state) {
+    g.closed = true;
+    if (current === g) current = null;
+    g.msg.state = state;
+    refreshMessage(g.msg);
+    updateControls();
+  }
+
+  function startGeneration(statusMessage) {
+    var m = buildMessage('assistant', '');
+    var g = { msg: m, handle: null, closed: false };
+    current = g;
+    addMessage(m);
+    updateControls();
+    setStatus('generating', statusMessage);
+
+    var payload = apiMessages();
+
+    function onToken(text) {
+      if (g.closed || current !== g) return; // ignore chunks from stopped/replaced answers
+      var t = (text === undefined || text === null) ? '' : String(text);
+      if (!t) return;
+      var wasEmpty = m.content.length === 0;
+      withAutoScroll(function () {
+        m.content += t;
+        m.textNode.appendData(t); // append only; no re-render, no live region
+        if (wasEmpty) refreshMessage(m);
+      });
+    }
+    function onDone() {
+      if (g.closed || current !== g) return;
+      finish(g, 'done');
+      setStatus('done', m.content ? 'Answer finished.' : 'Answer finished, but it was empty.');
+    }
+    function onError(error) { fail(g, error); }
+
+    try {
+      g.handle = window.ChatSDK.streamChat(payload, { onToken: onToken, onDone: onDone, onError: onError });
+    } catch (e) {
+      fail(g, e);
+    }
+  }
+
+  function fail(g, error) {
+    if (g.closed || current !== g) return;
+    var msg = (error && error.message) ? error.message : (error ? String(error) : 'Unknown error');
+    finish(g, 'error');
+    g.msg.err.textContent = 'Error: ' + msg;
+    g.msg.err.hidden = false;
+    setStatus('error', 'Error: ' + msg + '. ' +
+      (g.msg.content ? 'The partial answer was kept. ' : '') +
+      'Use Regenerate to try again.');
+  }
+
+  function send() {
+    if (current) {
+      setStatus('generating', 'Still generating. Press Stop to interrupt, then send your message.');
+      return;
+    }
+    var text = prompt.value.trim();
+    if (!text) {
+      setStatus('error', 'Please type a message before sending.');
+      return;
+    }
+    if (!window.ChatSDK || typeof window.ChatSDK.streamChat !== 'function') {
+      setStatus('error', 'Error: the chat service is not available.');
+      return;
+    }
+    addMessage(buildMessage('user', text));
+    prompt.value = '';
+    startGeneration('Generating answer…');
+  }
+
+  function stop() {
+    if (!current) return;
+    var g = detachCurrent();
+    g.msg.state = 'stopped';
+    refreshMessage(g.msg);
+    updateControls();
+    setStatus('stopped', g.msg.content
+      ? 'Generation stopped. The partial answer was kept.'
+      : 'Generation stopped before any text arrived.');
+  }
+
+  function regenerate() {
+    var idx = lastUserIndex();
+    if (idx === -1) return;
+    if (!window.ChatSDK || typeof window.ChatSDK.streamChat !== 'function') {
+      setStatus('error', 'Error: the chat service is not available.');
+      return;
+    }
+    detachCurrent();
+    while (messages.length > idx + 1) {
+      var removed = messages.pop();
+      if (removed.el.parentNode) removed.el.parentNode.removeChild(removed.el);
+    }
+    startGeneration('Regenerating answer…');
+  }
+
+  composer.addEventListener('submit', function (e) {
+    e.preventDefault();
+    send();
+  });
+  sendBtn.addEventListener('click', function (e) {
+    if (isDisabled(sendBtn)) {
+      e.preventDefault();
+      setStatus('generating', 'Still generating. Press Stop to interrupt, then send your message.');
+    }
+  });
+  stopBtn.addEventListener('click', function () {
+    if (isDisabled(stopBtn)) return;
+    stop();
+  });
+  regenBtn.addEventListener('click', function () {
+    if (isDisabled(regenBtn)) return;
+    regenerate();
+  });
+  prompt.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey && !e.isComposing) {
+      e.preventDefault();
+      send();
+    }
+  });
+
+  updateControls();
+})();
+</script>
+</body>
+</html>
+```

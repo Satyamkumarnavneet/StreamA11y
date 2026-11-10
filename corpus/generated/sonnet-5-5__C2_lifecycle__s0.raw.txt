@@ -1,0 +1,401 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat assistant</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font: 1rem/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    color: #1a1a1a;
+    background: #f3f5f8;
+  }
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    max-width: 52rem;
+    margin: 0 auto;
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+  h1 { margin: 0; font-size: 1.25rem; }
+  main { display: flex; flex-direction: column; gap: 0.75rem; flex: 1; min-height: 0; }
+
+  #transcript {
+    flex: 1;
+    min-height: 8rem;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #6b6b6b;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+  }
+  #messages { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.75rem; }
+  .empty { margin: 0; color: #4a4a4a; }
+  .msg {
+    max-width: 100%;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid #8a8a8a;
+    overflow-wrap: anywhere;
+  }
+  .msg.user { background: #e3ecfa; }
+  .msg.assistant { background: #f2f2f2; }
+  .who { display: block; font-weight: 700; font-size: 0.875rem; }
+  .text { white-space: pre-wrap; }
+  .note { margin-top: 0.25rem; font-size: 0.875rem; font-weight: 600; }
+  .note:empty { display: none; }
+  .note[data-kind="generating"] { color: #0b4f9c; }
+  .note[data-kind="stopped"] { color: #6b3f00; }
+  .note[data-kind="error"] { color: #a30019; }
+  .note[data-kind="done"] { color: #17602a; }
+
+  .statusbar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2.5rem;
+    padding: 0.4rem 0.75rem;
+    background: #fff;
+    border: 1px solid #6b6b6b;
+    border-radius: 0.5rem;
+    font-weight: 600;
+  }
+  .icon {
+    flex: none;
+    width: 1.5rem; height: 1.5rem;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .statusbar[data-state="idle"] { color: #333; }
+  .statusbar[data-state="idle"] .icon::before { content: "\25CB"; }
+  .statusbar[data-state="generating"] { color: #0b4f9c; }
+  .statusbar[data-state="generating"] .icon {
+    border: 3px solid #0b4f9c; border-top-color: transparent;
+    animation: spin 1s linear infinite;
+  }
+  .statusbar[data-state="stopped"] { color: #6b3f00; }
+  .statusbar[data-state="stopped"] .icon::before { content: "\25A0"; }
+  .statusbar[data-state="done"] { color: #17602a; }
+  .statusbar[data-state="done"] .icon::before { content: "\2713"; }
+  .statusbar[data-state="error"] { color: #a30019; }
+  .statusbar[data-state="error"] .icon::before { content: "!"; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    .statusbar[data-state="generating"] .icon { animation: none; }
+  }
+
+  form { display: flex; flex-direction: column; gap: 0.5rem; }
+  label { font-weight: 700; }
+  textarea {
+    width: 100%;
+    min-height: 4.5rem;
+    padding: 0.5rem 0.75rem;
+    font: inherit;
+    color: #1a1a1a;
+    background: #fff;
+    border: 2px solid #6b6b6b;
+    border-radius: 0.5rem;
+    resize: vertical;
+  }
+  .hint { margin: 0; font-size: 0.875rem; color: #404040; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  button {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+    padding: 0.5rem 1.1rem;
+    font: inherit;
+    font-weight: 600;
+    color: #fff;
+    background: #0b4f9c;
+    border: 2px solid #0b4f9c;
+    border-radius: 0.5rem;
+    cursor: pointer;
+  }
+  button#stop { background: #8a1c1c; border-color: #8a1c1c; }
+  button#regenerate { color: #0b4f9c; background: #fff; }
+  button[aria-disabled="true"] {
+    color: #4d4d4d;
+    background: #e2e2e2;
+    border-color: #8a8a8a;
+    cursor: not-allowed;
+  }
+  button:hover:not([aria-disabled="true"]) { filter: brightness(1.12); }
+  :focus-visible {
+    outline: 3px solid #111;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 6px #fff;
+  }
+  @media (forced-colors: active) {
+    button, textarea, .msg, .statusbar, #transcript { border: 2px solid CanvasText; }
+    button[aria-disabled="true"] { color: GrayText; border-color: GrayText; }
+    :focus-visible { outline: 3px solid Highlight; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header><h1>Chat assistant</h1></header>
+
+  <main>
+    <div id="transcript" role="region" aria-label="Conversation history" tabindex="0">
+      <p id="empty" class="empty">No messages yet. Type a message below to start.</p>
+      <ol id="messages"></ol>
+    </div>
+
+    <div class="statusbar" id="statusbar" data-state="idle">
+      <span class="icon" aria-hidden="true"></span>
+      <span id="status" role="status" aria-live="polite" aria-atomic="true">Ready.</span>
+    </div>
+
+    <form id="composer" autocomplete="off" novalidate>
+      <label for="prompt">Message</label>
+      <textarea id="prompt" name="prompt" rows="3" aria-describedby="prompt-hint"></textarea>
+      <p id="prompt-hint" class="hint">Press Enter to send. Press Shift+Enter for a new line.</p>
+      <div class="buttons">
+        <button type="button" id="send" aria-disabled="false">Send</button>
+        <button type="button" id="stop" aria-disabled="true">Stop</button>
+        <button type="button" id="regenerate" aria-disabled="true">Regenerate</button>
+      </div>
+    </form>
+  </main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var promptEl = $('prompt');
+  var sendBtn = $('send');
+  var stopBtn = $('stop');
+  var regenBtn = $('regenerate');
+  var transcript = $('transcript');
+  var list = $('messages');
+  var emptyEl = $('empty');
+  var statusBar = $('statusbar');
+  var statusEl = $('status');
+
+  var history = [];      // [{role, content}] – the data sent to the API
+  var current = null;    // the generation that is currently streaming, if any
+
+  function setStatus(state, text) {
+    statusBar.setAttribute('data-state', state);
+    statusEl.textContent = text;
+  }
+
+  function setAriaDisabled(btn, disabled) {
+    btn.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+  }
+
+  function hasUserMessage() {
+    for (var i = history.length - 1; i >= 0; i--) {
+      if (history[i].role === 'user') return true;
+    }
+    return false;
+  }
+
+  // Buttons use aria-disabled (not the disabled attribute) so keyboard focus is never lost.
+  function updateControls() {
+    setAriaDisabled(sendBtn, !!current);
+    setAriaDisabled(stopBtn, !current);
+    setAriaDisabled(regenBtn, !hasUserMessage());
+  }
+
+  function isNearBottom() {
+    return transcript.scrollHeight - transcript.scrollTop - transcript.clientHeight < 48;
+  }
+  function scrollToBottom() { transcript.scrollTop = transcript.scrollHeight; }
+
+  function addMessage(role) {
+    if (emptyEl) { emptyEl.remove(); emptyEl = null; }
+    var li = document.createElement('li');
+    li.className = 'msg ' + role;
+    li.setAttribute('data-role', role);
+    var who = document.createElement('span');
+    who.className = 'who';
+    who.textContent = role === 'user' ? 'You' : 'Assistant';
+    var text = document.createElement('div');
+    text.className = 'text';
+    var node = document.createTextNode('');
+    text.appendChild(node);
+    var note = document.createElement('div');
+    note.className = 'note';
+    li.appendChild(who);
+    li.appendChild(text);
+    li.appendChild(note);
+    list.appendChild(li);
+    scrollToBottom();
+    return { li: li, node: node, note: note };
+  }
+
+  function setNote(view, kind, text) {
+    view.note.setAttribute('data-kind', kind);
+    view.note.textContent = text;
+  }
+
+  function errorText(err) {
+    if (!err) return '';
+    var m = typeof err === 'string' ? err : (err.message || '');
+    return String(m).slice(0, 200);
+  }
+
+  // Ends a generation exactly once. After this, its callbacks are ignored.
+  function endGeneration(g, kind, err) {
+    if (!g.active) return;
+    g.active = false;
+    if (current === g) current = null;
+
+    var hasText = g.entry.content.length > 0;
+    if (!hasText) {
+      var idx = history.indexOf(g.entry);
+      if (idx !== -1) history.splice(idx, 1);
+    }
+
+    var detail;
+    if (kind === 'stopped') {
+      setNote(g.view, 'stopped', hasText ? 'Stopped. Partial answer kept.' : 'Stopped before any text arrived.');
+      setStatus('stopped', hasText ? 'Generation stopped. The partial answer was kept.' : 'Generation stopped. No answer text had arrived.');
+    } else if (kind === 'error') {
+      detail = errorText(err);
+      setNote(g.view, 'error', 'Error: the answer could not be completed' + (detail ? ' (' + detail + ')' : '') + '.' + (hasText ? ' Partial answer kept.' : ''));
+      setStatus('error', 'Error: the answer could not be completed.' + (detail ? ' ' + detail + '.' : '') + (hasText ? ' The partial answer was kept.' : ''));
+    } else {
+      setNote(g.view, 'done', hasText ? '' : 'The assistant returned an empty answer.');
+      setStatus('done', hasText ? 'Answer finished.' : 'Answer finished, but it was empty.');
+    }
+    updateControls();
+  }
+
+  // Silently drops a running generation (used when regenerating mid-stream).
+  function discardGeneration(g) {
+    if (!g.active) return;
+    g.active = false;
+    if (current === g) current = null;
+    try { if (g.handle && typeof g.handle.abort === 'function') g.handle.abort(); } catch (e) { /* ignore */ }
+    var idx = history.indexOf(g.entry);
+    if (idx !== -1) history.splice(idx, 1);
+  }
+
+  function startGeneration(statusText) {
+    var entry = { role: 'assistant', content: '' };
+    var view = addMessage('assistant');
+    setNote(view, 'generating', 'Generating…');
+    var payload = history.map(function (m) { return { role: m.role, content: m.content }; });
+    history.push(entry);
+
+    var g = { active: true, entry: entry, view: view, handle: null };
+    current = g;
+    updateControls();
+    setStatus('generating', statusText || 'Generating answer…');
+
+    try {
+      if (!window.ChatSDK || typeof window.ChatSDK.streamChat !== 'function') {
+        throw new Error('The chat service is not available');
+      }
+      var handle = window.ChatSDK.streamChat(payload, {
+        onToken: function (chunk) {
+          if (!g.active) return;               // ignore chunks from stopped/ended answers
+          var s = (typeof chunk === 'string') ? chunk : (chunk == null ? '' : String(chunk));
+          if (!s) return;
+          var stick = isNearBottom();
+          g.entry.content += s;
+          g.view.node.appendData(s);           // append only; no re-render, not a live region
+          if (stick) scrollToBottom();
+        },
+        onDone: function () { endGeneration(g, 'done'); },
+        onError: function (e) { endGeneration(g, 'error', e); }
+      });
+      g.handle = handle;
+    } catch (e) {
+      endGeneration(g, 'error', e);
+    }
+  }
+
+  function send() {
+    if (current) {
+      setStatus('generating', 'Still generating. Use Stop to end the answer before sending another message.');
+      return;
+    }
+    var text = promptEl.value.trim();
+    if (!text) {
+      setStatus('idle', 'Type a message before sending.');
+      return;
+    }
+    history.push({ role: 'user', content: text });
+    var view = addMessage('user');
+    view.node.appendData(text);
+    promptEl.value = '';
+    startGeneration();
+  }
+
+  function stop() {
+    var g = current;
+    if (!g) return;
+    g.active = false;      // from this moment on, late chunks are ignored
+    g.active = true;       // (re-armed only so endGeneration can finish bookkeeping)
+    try { if (g.handle && typeof g.handle.abort === 'function') g.handle.abort(); } catch (e) { /* ignore */ }
+    endGeneration(g, 'stopped');
+  }
+
+  function regenerate() {
+    var lastUser = -1;
+    for (var i = history.length - 1; i >= 0; i--) {
+      if (history[i].role === 'user') { lastUser = i; break; }
+    }
+    if (lastUser === -1) {
+      setStatus('idle', 'There is no message to regenerate an answer for.');
+      return;
+    }
+    if (current) discardGeneration(current);
+
+    // Drop every answer after the last user message, in data and in the page.
+    history.length = lastUser + 1;
+    var items = list.children;
+    var lastUserEl = null;
+    for (var j = items.length - 1; j >= 0; j--) {
+      if (items[j].getAttribute('data-role') === 'user') { lastUserEl = items[j]; break; }
+    }
+    while (lastUserEl && lastUserEl.nextSibling) list.removeChild(lastUserEl.nextSibling);
+
+    startGeneration('Regenerating answer…');
+  }
+
+  sendBtn.addEventListener('click', function () {
+    if (sendBtn.getAttribute('aria-disabled') === 'true') {
+      send(); // explains why sending is unavailable
+      return;
+    }
+    send();
+  });
+  stopBtn.addEventListener('click', function () {
+    if (stopBtn.getAttribute('aria-disabled') === 'true') return;
+    stop();
+  });
+  regenBtn.addEventListener('click', function () {
+    if (regenBtn.getAttribute('aria-disabled') === 'true') return;
+    regenerate();
+  });
+  promptEl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) {
+      e.preventDefault();
+      send();
+    }
+  });
+  $('composer').addEventListener('submit', function (e) { e.preventDefault(); });
+
+  updateControls();
+})();
+</script>
+</body>
+</html>
+```

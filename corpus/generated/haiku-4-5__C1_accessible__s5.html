@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        #chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+            background-color: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        #messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 8px;
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+
+        .message.user .message-content {
+            background-color: #0084ff;
+            color: white;
+            border-bottom-right-radius: 2px;
+        }
+
+        .message.assistant .message-content {
+            background-color: #e5e5ea;
+            color: #333;
+            border-bottom-left-radius: 2px;
+        }
+
+        .status-indicator {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            padding: 12px 16px;
+            background-color: #f0f0f0;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #666;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-dot.generating {
+            background-color: #0084ff;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .status-dot.stopped {
+            background-color: #ff9500;
+        }
+
+        .status-dot.error {
+            background-color: #ff3b30;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        #input-area {
+            padding: 16px 20px;
+            background-color: #f9f9f9;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+        }
+
+        #prompt {
+            flex: 1;
+            padding: 12px 14px;
+            border: 1px solid #d0d0d0;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: none;
+            min-height: 44px;
+            max-height: 120px;
+            transition: border-color 0.2s;
+        }
+
+        #prompt:focus {
+            outline: none;
+            border-color: #0084ff;
+            box-shadow: 0 0 0 3px rgba(0, 132, 255, 0.1);
+        }
+
+        button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+
+        #send {
+            background-color: #0084ff;
+            color: white;
+            min-width: 80px;
+        }
+
+        #send:hover:not(:disabled) {
+            background-color: #0073e6;
+        }
+
+        #send:active:not(:disabled) {
+            background-color: #0066cc;
+        }
+
+        #send:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #send:focus-visible {
+            outline: 2px solid #0084ff;
+            outline-offset: 2px;
+        }
+
+        #stop, #regenerate {
+            background-color: #ff9500;
+            color: white;
+            min-width: 80px;
+        }
+
+        #stop:hover:not(:disabled) {
+            background-color: #e68900;
+        }
+
+        #stop:active:not(:disabled) {
+            background-color: #cc7700;
+        }
+
+        #stop:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #stop:focus-visible {
+            outline: 2px solid #ff9500;
+            outline-offset: 2px;
+        }
+
+        #regenerate:hover:not(:disabled) {
+            background-color: #e68900;
+        }
+
+        #regenerate:active:not(:disabled) {
+            background-color: #cc7700;
+        }
+
+        #regenerate:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #regenerate:focus-visible {
+            outline: 2px solid #ff9500;
+            outline-offset: 2px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        @media (max-width: 600px) {
+            #messages {
+                padding: 12px;
+            }
+
+            .message-content {
+                max-width: 90%;
+            }
+
+            #input-area {
+                padding: 12px;
+                gap: 6px;
+            }
+
+            button {
+                font-size: 13px;
+                padding: 8px 12px;
+                min-height: 40px;
+            }
+
+            .input-row {
+                gap: 6px;
+            }
+
+            #send, #stop, #regenerate {
+                min-width: 70px;
+            }
+        }
+
+        #empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #999;
+            text-align: center;
+            padding: 20px;
+        }
+
+        #empty-state h2 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: #666;
+        }
+
+        #empty-state p {
+            font-size: 14px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <div id="messages" role="log" aria-label="Chat conversation"></div>
+        <div id="empty-state" role="status" aria-live="polite">
+            <h2>Chat Assistant</h2>
+            <p>Start a conversation by typing a message below.</p>
+        </div>
+        <div id="input-area">
+            <div class="input-row">
+                <textarea
+                    id="prompt"
+                    placeholder="Type your message here... (Shift+Enter for new line, Enter to send)"
+                    aria-label="Message input"
+                    spellcheck="true"
+                ></textarea>
+                <button id="send" aria-label="Send message">Send</button>
+            </div>
+            <div class="button-group">
+                <button id="stop" disabled aria-label="Stop generating response">Stop</button>
+                <button id="regenerate" disabled aria-label="Regenerate response to last message">Regenerate</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const prompt = document.getElementById('prompt');
+        const sendBtn = document.getElementById('send');
+        const stopBtn = document.getElementById('stop');
+        const regenerateBtn = document.getElementById('regenerate');
+        const messagesContainer = document.getElementById('messages');
+        const emptyState = document.getElementById('empty-state');
+        const chatContainer = document.getElementById('chat-container');
+
+        let messages = [];
+        let currentStreamHandle = null;
+        let isStreaming = false;
+        let lastUserMessage = null;
+
+        const updateEmptyState = () => {
+            if (messages.length === 0) {
+                emptyState.style.display = 'flex';
+                messagesContainer.setAttribute('aria-busy', 'false');
+            } else {
+                emptyState.style.display = 'none';
+                messagesContainer.setAttribute('aria-busy', isStreaming);
+            }
+        };
+
+        const addMessageToDOM = (role, content) => {
+            emptyState.style.display = 'none';
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            messageDiv.setAttribute('role', 'article');
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = content;
+
+            messageDiv.appendChild(contentDiv);
+            messagesContainer.appendChild(messageDiv);
+            scrollToBottom();
+        };
+
+        const addStatusIndicator = (text, type = 'generating') => {
+            const statusDiv = document.createElement('div');
+            statusDiv.className = 'status-indicator';
+            statusDiv.id = 'status-indicator';
+            statusDiv.setAttribute('role', 'status');
+            statusDiv.setAttribute('aria-live', 'polite');
+
+            const dot = document.createElement('span');
+            dot.className = `status-dot ${type}`;
+            dot.setAttribute('aria-hidden', 'true');
+
+            statusDiv.appendChild(dot);
+            statusDiv.appendChild(document.createTextNode(text));
+
+            messagesContainer.appendChild(statusDiv);
+            scrollToBottom();
+            return statusDiv;
+        };
+
+        const removeStatusIndicator = () => {
+            const status = document.getElementById('status-indicator');
+            if (status) {
+                status.remove();
+            }
+        };
+
+        const scrollToBottom = () => {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        };
+
+        const updateButtonStates = () => {
+            sendBtn.disabled = isStreaming;
+            stopBtn.disabled = !isStreaming;
+            regenerateBtn.disabled = isStreaming || messages.length === 0 || messages[messages.length - 1].role !== 'assistant';
+            prompt.disabled = isStreaming;
+        };
+
+        const addMessage = (role, content) => {
+            messages.push({ role, content });
+            addMessageToDOM(role, content);
+        };
+
+        const startStream = async (userMessage, isRegenerate = false) => {
+            if (!isRegenerate) {
+                addMessage('user', userMessage);
+                lastUserMessage = userMessage;
+                prompt.value = '';
+            } else {
+                messages = messages.filter(m => m !== messages[messages.length - 1]);
+                messagesContainer.lastChild.remove();
+            }
+
+            isStreaming = true;
+            updateButtonStates();
+            updateEmptyState();
+
+            const statusIndicator = addStatusIndicator('Assistant is generating...', 'generating');
+            let assistantContent = '';
+
+            const onToken = (text) => {
+                assistantContent += text;
+                statusIndicator.style.display = 'none';
+
+                let lastMessage = messagesContainer.querySelector('.message.assistant:last-of-type');
+                if (!lastMessage) {
+                    addMessageToDOM('assistant', assistantContent);
+                    lastMessage = messagesContainer.querySelector('.message.assistant:last-of-type');
+                } else {
+                    const contentDiv = lastMessage.querySelector('.message-content');
+                    contentDiv.textContent = assistantContent;
+                }
+
+                scrollToBottom();
+            };
+
+            const onDone = () => {
+                isStreaming = false;
+                removeStatusIndicator();
+                addMessage('assistant', assistantContent);
+                const lastMsg = messagesContainer.querySelector('.message.assistant:last-of-type');
+                if (lastMsg) {
+                    lastMsg.remove();
+                }
+                updateButtonStates();
+                updateEmptyState();
+                messagesContainer.setAttribute('aria-busy', 'false');
+                const announcement = document.createElement('div');
+                announcement.className = 'sr-only';
+                announcement.setAttribute('aria-live', 'polite');
+                announcement.textContent = 'Response complete.';
+                document.body.appendChild(announcement);
+                setTimeout(() => announcement.remove(), 1000);
+            };
+
+            const onError = (error) => {
+                isStreaming = false;
+                removeStatusIndicator();
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'status-indicator';
+                errorDiv.setAttribute('role', 'alert');
+
+                const dot = document.createElement('span');
+                dot.className = 'status-dot error';
+                dot.setAttribute('aria-hidden', 'true');
+
+                errorDiv.appendChild(dot);
+                const errorMsg = error instanceof Error ? error.message : String(error);
+                errorDiv.appendChild(document.createTextNode(`Error: ${errorMsg}`));
+
+                messagesContainer.appendChild(errorDiv);
+                scrollToBottom();
+                updateButtonStates();
+                updateEmptyState();
+                messagesContainer.setAttribute('aria-busy', 'false');
+            };
+
+            currentStreamHandle = window.ChatSDK.streamChat(messages, {
+                onToken,
+                onDone,
+                onError
+            });
+        };
+
+        sendBtn.addEventListener('click', async () => {
+            const userMessage = prompt.value.trim();
+            if (userMessage) {
+                await startStream(userMessage);
+            }
+        });
+
+        prompt.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const userMessage = prompt.value.trim();
+                if (userMessage && !isStreaming) {
+                    startStream(userMessage);
+                }
+            }
+        });
+
+        stopBtn.addEventListener('click', () => {
+            if (currentStreamHandle) {
+                currentStreamHandle.abort();
+                isStreaming = false;
+                removeStatusIndicator();
+
+                const stoppedDiv = document.createElement('div');
+                stoppedDiv.className = 'status-indicator';
+                stoppedDiv.setAttribute('role', 'status');
+                stoppedDiv.setAttribute('aria-live', 'polite');
+
+                const dot = document.createElement('span');
+                dot.className = 'status-dot stopped';
+                dot.setAttribute('aria-hidden', 'true');
+
+                stoppedDiv.appendChild(dot);
+                stoppedDiv.appendChild(document.createTextNode('Response stopped.'));
+
+                messagesContainer.appendChild(stoppedDiv);
+                scrollToBottom();
+
+                updateButtonStates();
+                updateEmptyState();
+                messagesContainer.setAttribute('aria-busy', 'false');
+            }
+        });
+
+        regenerateBtn.addEventListener('click', async () => {
+            if (messages.length > 0 && messages[messages.length - 1].role === 'assistant') {
+                await startStream(lastUserMessage, true);
+            }
+        });
+
+        updateEmptyState();
+    </script>
+</body>
+</html>

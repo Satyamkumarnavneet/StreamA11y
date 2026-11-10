@@ -1,0 +1,598 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Assistant</title>
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f5f5f5;
+            color: #1a1a1a;
+            line-height: 1.5;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-header {
+            padding: 16px 20px;
+            background-color: #2563eb;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .chat-header h1 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+
+        .message-user {
+            align-self: flex-end;
+            background-color: #2563eb;
+            color: #fff;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message-assistant {
+            align-self: flex-start;
+            background-color: #e5e7eb;
+            color: #1a1a1a;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+            opacity: 0.8;
+        }
+
+        .message-content {
+            font-size: 1rem;
+        }
+
+        .message-streaming .message-content::after {
+            content: '▋';
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .message-error {
+            background-color: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+        }
+
+        .status-indicator {
+            padding: 8px 16px;
+            font-size: 0.875rem;
+            color: #6b7280;
+            text-align: center;
+            flex-shrink: 0;
+            min-height: 36px;
+        }
+
+        .status-indicator:empty {
+            display: none;
+        }
+
+        .status-generating {
+            color: #2563eb;
+        }
+
+        .status-stopped {
+            color: #d97706;
+        }
+
+        .status-error {
+            color: #dc2626;
+        }
+
+        .chat-input-area {
+            padding: 16px 20px;
+            border-top: 1px solid #e5e7eb;
+            background-color: #fff;
+            flex-shrink: 0;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .prompt-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #prompt {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 1rem;
+            font-family: inherit;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            resize: none;
+            min-height: 48px;
+            max-height: 150px;
+            transition: border-color 0.2s;
+        }
+
+        #prompt:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+        }
+
+        #prompt:disabled {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 1rem;
+            font-family: inherit;
+            font-weight: 500;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s, opacity 0.2s;
+            white-space: nowrap;
+        }
+
+        button:focus {
+            outline: 2px solid #2563eb;
+            outline-offset: 2px;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #send {
+            background-color: #2563eb;
+            color: #fff;
+        }
+
+        #send:hover:not(:disabled) {
+            background-color: #1d4ed8;
+        }
+
+        #stop {
+            background-color: #dc2626;
+            color: #fff;
+        }
+
+        #stop:hover:not(:disabled) {
+            background-color: #b91c1c;
+        }
+
+        #regenerate {
+            background-color: #6b7280;
+            color: #fff;
+        }
+
+        #regenerate:hover:not(:disabled) {
+            background-color: #4b5563;
+        }
+
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #6b7280;
+            padding: 40px 20px;
+        }
+
+        .empty-state p {
+            margin: 0;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <header class="chat-header">
+            <h1>Chat Assistant</h1>
+        </header>
+
+        <main 
+            id="chat-messages" 
+            class="chat-messages" 
+            role="log" 
+            aria-label="Conversation history"
+            aria-live="off"
+        >
+            <div class="empty-state" id="empty-state">
+                <p>Start a conversation by typing a message below.</p>
+            </div>
+        </main>
+
+        <div 
+            id="status-indicator" 
+            class="status-indicator" 
+            aria-live="polite" 
+            aria-atomic="true"
+        ></div>
+
+        <div 
+            id="sr-announcer" 
+            class="visually-hidden" 
+            role="status" 
+            aria-live="polite" 
+            aria-atomic="true"
+        ></div>
+
+        <footer class="chat-input-area">
+            <div class="input-row">
+                <div class="prompt-container">
+                    <label for="prompt" class="visually-hidden">Type your message</label>
+                    <textarea 
+                        id="prompt" 
+                        placeholder="Type your message…" 
+                        rows="1"
+                        aria-describedby="input-instructions"
+                    ></textarea>
+                    <span id="input-instructions" class="visually-hidden">
+                        Press Enter to send, Shift+Enter for new line
+                    </span>
+                </div>
+                <div class="button-group">
+                    <button id="send" type="button">Send</button>
+                    <button id="stop" type="button" disabled aria-disabled="true">Stop</button>
+                    <button id="regenerate" type="button" disabled aria-disabled="true">Regenerate</button>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            const messagesContainer = document.getElementById('chat-messages');
+            const statusIndicator = document.getElementById('status-indicator');
+            const srAnnouncer = document.getElementById('sr-announcer');
+            const emptyState = document.getElementById('empty-state');
+            const promptInput = document.getElementById('prompt');
+            const sendButton = document.getElementById('send');
+            const stopButton = document.getElementById('stop');
+            const regenerateButton = document.getElementById('regenerate');
+
+            let conversationHistory = [];
+            let currentHandle = null;
+            let currentStreamId = null;
+            let isStreaming = false;
+            let currentAssistantMessageEl = null;
+            let currentContentEl = null;
+            let currentAssistantText = '';
+
+            function generateId() {
+                return Date.now().toString(36) + Math.random().toString(36).substr(2);
+            }
+
+            function announce(message) {
+                srAnnouncer.textContent = '';
+                requestAnimationFrame(() => {
+                    srAnnouncer.textContent = message;
+                });
+            }
+
+            function setStatus(message, type) {
+                statusIndicator.textContent = message;
+                statusIndicator.className = 'status-indicator';
+                if (type) {
+                    statusIndicator.classList.add('status-' + type);
+                }
+            }
+
+            function clearStatus() {
+                statusIndicator.textContent = '';
+                statusIndicator.className = 'status-indicator';
+            }
+
+            function updateButtonStates() {
+                const hasContent = promptInput.value.trim().length > 0;
+                const hasHistory = conversationHistory.length > 0;
+                const lastMessageIsAssistant = hasHistory && 
+                    conversationHistory[conversationHistory.length - 1].role === 'assistant';
+
+                sendButton.disabled = isStreaming || !hasContent;
+                sendButton.setAttribute('aria-disabled', sendButton.disabled);
+
+                stopButton.disabled = !isStreaming;
+                stopButton.setAttribute('aria-disabled', stopButton.disabled);
+
+                regenerateButton.disabled = isStreaming || !lastMessageIsAssistant;
+                regenerateButton.setAttribute('aria-disabled', regenerateButton.disabled);
+
+                promptInput.disabled = isStreaming;
+            }
+
+            function hideEmptyState() {
+                if (emptyState) {
+                    emptyState.style.display = 'none';
+                }
+            }
+
+            function scrollToBottom() {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            function createMessageElement(role, content, isError) {
+                const messageEl = document.createElement('div');
+                messageEl.className = 'message message-' + role;
+                if (isError) {
+                    messageEl.classList.add('message-error');
+                }
+
+                const labelEl = document.createElement('div');
+                labelEl.className = 'message-label';
+                labelEl.textContent = role === 'user' ? 'You' : 'Assistant';
+
+                const contentEl = document.createElement('div');
+                contentEl.className = 'message-content';
+                contentEl.textContent = content;
+
+                messageEl.appendChild(labelEl);
+                messageEl.appendChild(contentEl);
+
+                return { messageEl, contentEl };
+            }
+
+            function addUserMessage(content) {
+                hideEmptyState();
+                const { messageEl } = createMessageElement('user', content);
+                messagesContainer.appendChild(messageEl);
+                scrollToBottom();
+            }
+
+            function startAssistantMessage() {
+                hideEmptyState();
+                const { messageEl, contentEl } = createMessageElement('assistant', '');
+                messageEl.classList.add('message-streaming');
+                messageEl.setAttribute('aria-busy', 'true');
+                currentAssistantMessageEl = messageEl;
+                currentContentEl = contentEl;
+                currentAssistantText = '';
+                messagesContainer.appendChild(messageEl);
+                scrollToBottom();
+            }
+
+            function appendToAssistantMessage(text) {
+                if (currentContentEl) {
+                    currentAssistantText += text;
+                    currentContentEl.textContent = currentAssistantText;
+                    scrollToBottom();
+                }
+            }
+
+            function finalizeAssistantMessage(wasStopped, errorMessage) {
+                if (currentAssistantMessageEl) {
+                    currentAssistantMessageEl.classList.remove('message-streaming');
+                    currentAssistantMessageEl.removeAttribute('aria-busy');
+
+                    if (errorMessage && !currentAssistantText) {
+                        currentAssistantMessageEl.classList.add('message-error');
+                        currentContentEl.textContent = 'Error: ' + errorMessage;
+                    }
+                }
+                currentAssistantMessageEl = null;
+                currentContentEl = null;
+            }
+
+            function sendMessage(userMessage) {
+                if (isStreaming) return;
+
+                conversationHistory.push({ role: 'user', content: userMessage });
+                addUserMessage(userMessage);
+
+                streamAssistantResponse();
+            }
+
+            function streamAssistantResponse() {
+                if (isStreaming) return;
+
+                isStreaming = true;
+                const streamId = generateId();
+                currentStreamId = streamId;
+
+                startAssistantMessage();
+                setStatus('Generating response…', 'generating');
+                announce('Assistant is generating a response');
+                updateButtonStates();
+
+                const messagesToSend = conversationHistory.map(m => ({
+                    role: m.role,
+                    content: m.content
+                }));
+
+                currentHandle = window.ChatSDK.streamChat(messagesToSend, {
+                    onToken: function(text) {
+                        if (currentStreamId !== streamId) return;
+                        appendToAssistantMessage(text);
+                    },
+                    onDone: function() {
+                        if (currentStreamId !== streamId) return;
+
+                        conversationHistory.push({ 
+                            role: 'assistant', 
+                            content: currentAssistantText 
+                        });
+
+                        finalizeAssistantMessage(false);
+                        clearStatus();
+                        announce('Response complete');
+
+                        isStreaming = false;
+                        currentHandle = null;
+                        currentStreamId = null;
+                        updateButtonStates();
+                        promptInput.focus();
+                    },
+                    onError: function(error) {
+                        if (currentStreamId !== streamId) return;
+
+                        const errorMsg = error && error.message ? error.message : 'An error occurred';
+
+                        if (currentAssistantText) {
+                            conversationHistory.push({ 
+                                role: 'assistant', 
+                                content: currentAssistantText 
+                            });
+                        }
+
+                        finalizeAssistantMessage(false, currentAssistantText ? null : errorMsg);
+                        setStatus('Error: ' + errorMsg, 'error');
+                        announce('Error: ' + errorMsg);
+
+                        isStreaming = false;
+                        currentHandle = null;
+                        currentStreamId = null;
+                        updateButtonStates();
+                        promptInput.focus();
+                    }
+                });
+            }
+
+            function stopGeneration() {
+                if (!isStreaming || !currentHandle) return;
+
+                const stoppedStreamId = currentStreamId;
+                currentStreamId = null;
+
+                currentHandle.abort();
+                currentHandle = null;
+
+                if (currentAssistantText) {
+                    conversationHistory.push({ 
+                        role: 'assistant', 
+                        content: currentAssistantText 
+                    });
+                }
+
+                finalizeAssistantMessage(true);
+                setStatus('Generation stopped', 'stopped');
+                announce('Generation stopped');
+
+                isStreaming = false;
+                updateButtonStates();
+            }
+
+            function regenerateResponse() {
+                if (isStreaming) return;
+                if (conversationHistory.length === 0) return;
+
+                const lastMessage = conversationHistory[conversationHistory.length - 1];
+                if (lastMessage.role !== 'assistant') return;
+
+                conversationHistory.pop();
+
+                const lastAssistantEl = messagesContainer.querySelector('.message-assistant:last-of-type');
+                if (lastAssistantEl) {
+                    lastAssistantEl.remove();
+                }
+
+                clearStatus();
+                streamAssistantResponse();
+            }
+
+            function handleSend() {
+                const message = promptInput.value.trim();
+                if (message && !isStreaming) {
+                    promptInput.value = '';
+                    sendMessage(message);
+                }
+            }
+
+            sendButton.addEventListener('click', handleSend);
+
+            stopButton.addEventListener('click', function() {
+                stopGeneration();
+            });
+
+            regenerateButton.addEventListener('click', function() {
+                regenerateResponse();
+            });
+
+            promptInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                }
+            });
+
+            promptInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+                updateButtonStates();
+            });
+
+            updateButtonStates();
+            promptInput.focus();
+        })();
+    </script>
+</body>
+</html>
+```

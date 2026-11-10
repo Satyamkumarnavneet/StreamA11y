@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat Assistant</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #f4f5f7;
+    color: #1d1f23;
+  }
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-width: 820px;
+    margin: 0 auto;
+    background: #ffffff;
+    box-shadow: 0 0 0 1px #d0d5dd;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .skip-link {
+    position: absolute;
+    left: 12px;
+    top: -48px;
+    background: #ffffff;
+    color: #1d1f23;
+    padding: 8px 12px;
+    border: 2px solid #1b6ef3;
+    border-radius: 8px;
+    z-index: 10;
+    text-decoration: none;
+  }
+  .skip-link:focus { top: 12px; }
+
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid #d0d5dd;
+  }
+  header h1 {
+    font-size: 1.1rem;
+    margin: 0;
+    font-weight: 600;
+  }
+  .status {
+    font-size: 0.85rem;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #eef0f3;
+    color: #3d424a;
+    white-space: nowrap;
+  }
+  .status.generating { background: #e6f0ff; color: #1b4fa0; }
+  .status.generating::before {
+    content: "";
+    display: inline-block;
+    width: 8px; height: 8px;
+    margin-right: 6px;
+    border-radius: 50%;
+    background: #1b4fa0;
+    animation: pulse 1s infinite ease-in-out;
+  }
+  .status.done { background: #e7f6ec; color: #1d6b38; }
+  .status.stopped { background: #fff4e0; color: #7a4f00; }
+  .status.error { background: #fde8e8; color: #9b1c1c; }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+  }
+
+  #conversation {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  #conversation:focus-visible {
+    outline: 2px solid #1b6ef3;
+    outline-offset: -2px;
+  }
+  .empty {
+    margin: auto;
+    color: #5c636c;
+    text-align: center;
+    font-size: 0.95rem;
+  }
+  .msg {
+    display: flex;
+    flex-direction: column;
+    max-width: 85%;
+    margin: 0;
+  }
+  .msg.user { align-self: flex-end; align-items: flex-end; }
+  .msg.assistant { align-self: flex-start; align-items: flex-start; }
+  .msg .role {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #5c636c;
+    margin-bottom: 4px;
+  }
+  .msg .content {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+    padding: 10px 13px;
+    border-radius: 12px;
+    line-height: 1.45;
+    font-size: 0.95rem;
+  }
+  .msg.user .content { background: #1b6ef3; color: #ffffff; border-bottom-right-radius: 4px; }
+  .msg.assistant .content { background: #eef0f3; color: #1d1f23; border-bottom-left-radius: 4px; }
+
+  #error-box {
+    margin: 0 18px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #fde8e8;
+    color: #9b1c1c;
+    font-size: 0.9rem;
+  }
+  #error-box[hidden] { display: none; }
+
+  form#composer {
+    border-top: 1px solid #d0d5dd;
+    padding: 12px 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  label.visually-hidden-label {
+    font-size: 0.9rem;
+    color: #3d424a;
+  }
+  textarea#prompt {
+    resize: vertical;
+    min-height: 48px;
+    max-height: 220px;
+    padding: 10px 12px;
+    font: inherit;
+    font-size: 0.95rem;
+    color: #1d1f23;
+    background: #ffffff;
+    border: 1px solid #6a7079;
+    border-radius: 10px;
+    outline: none;
+  }
+  textarea#prompt::placeholder { color: #5c636c; opacity: 1; }
+  textarea#prompt:focus-visible {
+    border-color: #1b6ef3;
+    box-shadow: 0 0 0 3px rgba(27,110,243,0.25);
+  }
+  textarea#prompt:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+  button {
+    font: inherit;
+    font-size: 0.9rem;
+    min-height: 36px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid #6a7079;
+    background: #ffffff;
+    color: #1d1f23;
+    cursor: pointer;
+  }
+  button:hover:not(:disabled) { background: #f0f3f8; }
+  button:focus-visible { outline: 3px solid #1b6ef3; outline-offset: 2px; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  #send { background: #1b6ef3; border-color: #1b6ef3; color: #ffffff; }
+  #send:hover:not(:disabled) { background: #1659cc; border-color: #1659cc; }
+  #stop { border-color: #b93a09; color: #b93a09; }
+  #stop:hover:not(:disabled) { background: #fdf1ec; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .status.generating::before { animation: none; }
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#prompt">Skip to message box</a>
+<div id="app">
+  <header>
+    <h1>Chat Assistant</h1>
+    <div id="status" class="status" role="status" aria-live="polite">Ready</div>
+  </header>
+
+  <main id="conversation" role="log" aria-live="off" aria-label="Conversation" aria-busy="false" tabindex="0"></main>
+
+  <div id="error-box" role="alert" hidden></div>
+
+  <form id="composer" onsubmit="return false;">
+    <label class="sr-only" for="prompt">Message</label>
+    <textarea id="prompt" rows="2" placeholder="Type a message… (Enter to send, Shift+Enter for a new line)"></textarea>
+    <div class="buttons">
+      <button type="button" id="send">Send</button>
+      <button type="button" id="stop" disabled>Stop</button>
+      <button type="button" id="regenerate" disabled>Regenerate</button>
+    </div>
+  </form>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var els = {
+    conversation: document.getElementById('conversation'),
+    status: document.getElementById('status'),
+    errorBox: document.getElementById('error-box'),
+    prompt: document.getElementById('prompt'),
+    send: document.getElementById('send'),
+    stop: document.getElementById('stop'),
+    regenerate: document.getElementById('regenerate')
+  };
+
+  // Conversation history: [{role: 'user' | 'assistant', content: string}]
+  var history = [];
+
+  // The stream currently in progress, or null.
+  // { id, handle, bubble, wrap, index }
+  var active = null;
+  var nextRequestId = 1;
+
+  function setStatus(kind, text) {
+    els.status.className = 'status' + (kind ? ' ' + kind : '');
+    els.status.textContent = text;
+  }
+
+  function showError(text) {
+    els.errorBox.textContent = text;
+    els.errorBox.hidden = false;
+  }
+
+  function clearError() {
+    els.errorBox.textContent = '';
+    els.errorBox.hidden = true;
+  }
+
+  function hasUserMessage() {
+    for (var i = 0; i < history.length; i++) {
+      if (history[i].role === 'user') return true;
+    }
+    return false;
+  }
+
+  // Moves focus off a control that is about to be disabled, so keyboard
+  // focus is not lost to the document body.
+  function moveFocusToPromptIfActive(control) {
+    if (document.activeElement === control && !els.prompt.disabled) {
+      els.prompt.focus();
+    }
+  }
+
+  function setDisabled(control, disabled) {
+    if (disabled) moveFocusToPromptIfActive(control);
+    control.disabled = disabled;
+  }
+
+  function updateButtons() {
+    var streaming = !!active;
+    setDisabled(els.send, streaming);
+    setDisabled(els.stop, !streaming);
+    setDisabled(els.regenerate, streaming || !hasUserMessage());
+    els.conversation.setAttribute('aria-busy', streaming ? 'true' : 'false');
+  }
+
+  function scrollToBottom() {
+    els.conversation.scrollTop = els.conversation.scrollHeight;
+  }
+
+  // Rebuilds the whole conversation from history. Uses textContent only,
+  // so model output is never interpreted as HTML.
+  function renderHistory() {
+    els.conversation.innerHTML = '';
+
+    if (history.length === 0) {
+      var empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.textContent = 'Send a message to start the conversation.';
+      els.conversation.appendChild(empty);
+      return null;
+    }
+
+    var lastBubble = null;
+    for (var i = 0; i < history.length; i++) {
+      var m = history[i];
+      var wrap = document.createElement('article');
+      wrap.className = 'msg ' + m.role;
+      wrap.setAttribute('aria-label', m.role === 'user' ? 'Your message' : 'Assistant answer');
+
+      var label = document.createElement('div');
+      label.className = 'role';
+      label.setAttribute('aria-hidden', 'true');
+      label.textContent = m.role === 'user' ? 'You' : 'Assistant';
+
+      var content = document.createElement('div');
+      content.className = 'content';
+      content.textContent = m.content;
+
+      wrap.appendChild(label);
+      wrap.appendChild(content);
+      els.conversation.appendChild(wrap);
+      lastBubble = { wrap: wrap, content: content };
+    }
+    scrollToBottom();
+    return lastBubble;
+  }
+
+  // Removes a trailing empty assistant placeholder, if any.
+  function dropEmptyAssistant() {
+    var last = history[history.length - 1];
+    if (last && last.role === 'assistant' && last.content === '') {
+      history.pop();
+    }
+  }
+
+  function finishStreamUi(bubbleWrap) {
+    if (bubbleWrap) bubbleWrap.setAttribute('aria-busy', 'false');
+  }
+
+  function startStream() {
+    var requestId = nextRequestId++;
+
+    // Snapshot the messages to send (history as it stands, no placeholder).
+    var messages = history.map(function (m) {
+      return { role: m.role, content: m.content };
+    });
+
+    // Placeholder assistant entry that receives streamed tokens.
+    history.push({ role: 'assistant', content: '' });
+    var index = history.length - 1;
+
+    var rendered = renderHistory();
+    var req = {
+      id: requestId,
+      handle: null,
+      bubble: rendered ? rendered.content : null,
+      wrap: rendered ? rendered.wrap : null,
+      index: index
+    };
+    if (req.wrap) req.wrap.setAttribute('aria-busy', 'true');
+
+    active = req;
+    setStatus('generating', 'Generating answer…');
+    updateButtons();
+
+    function isCurrent() {
+      return active === req;
+    }
+
+    function completeNormally(kind, text) {
+      active = null;
+      finishStreamUi(req.wrap);
+      dropEmptyAssistant();
+      setStatus(kind, text);
+      renderHistory();
+      updateButtons();
+      els.prompt.focus();
+    }
+
+    var callbacks = {
+      onToken: function (text) {
+        // Ignore anything that arrives after stop/abort or from an old request.
+        if (!isCurrent()) return;
+        var entry = history[req.index];
+        if (!entry) return;
+        entry.content += String(text);
+        if (req.bubble) req.bubble.textContent = entry.content;
+        scrollToBottom();
+      },
+      onDone: function () {
+        if (!isCurrent()) return;
+        completeNormally('done', 'Finished');
+      },
+      onError: function (error) {
+        if (!isCurrent()) return;
+        var msg = (error && error.message) ? error.message : String(error || 'Unknown error');
+        showError('The answer could not be completed. ' + msg);
+        completeNormally('error', 'Error');
+      }
+    };
+
+    try {
+      req.handle = window.ChatSDK.streamChat(messages, callbacks);
+    } catch (err) {
+      if (isCurrent()) {
+        var msg = (err && err.message) ? err.message : String(err);
+        showError('The answer could not be started. ' + msg);
+        completeNormally('error', 'Error');
+      }
+    }
+  }
+
+  function send() {
+    if (active) return;
+    var text = els.prompt.value.trim();
+    if (!text) return;
+
+    clearError();
+    history.push({ role: 'user', content: text });
+    els.prompt.value = '';
+    renderHistory();
+    startStream();
+  }
+
+  function stop() {
+    if (!active) return;
+    var req = active;
+
+    // Mark as inactive first so any late onToken is ignored.
+    active = null;
+    finishStreamUi(req.wrap);
+
+    try {
+      if (req.handle && typeof req.handle.abort === 'function') {
+        req.handle.abort();
+      }
+    } catch (e) {
+      // Ignore abort failures; the stream is already marked stopped locally.
+    }
+
+    // Keep the partial answer. Drop it only if nothing was shown at all.
+    dropEmptyAssistant();
+    setStatus('stopped', 'Stopped');
+    renderHistory();
+    updateButtons();
+    els.prompt.focus();
+  }
+
+  function regenerate() {
+    if (active) return;
+
+    var lastUser = -1;
+    for (var i = history.length - 1; i >= 0; i--) {
+      if (history[i].role === 'user') { lastUser = i; break; }
+    }
+    if (lastUser === -1) return;
+
+    // Discard everything after the last user message (old answer(s)).
+    clearError();
+    history.length = lastUser + 1;
+    renderHistory();
+    startStream();
+  }
+
+  // ---- Wiring ----
+
+  els.send.addEventListener('click', send);
+  els.stop.addEventListener('click', stop);
+  els.regenerate.addEventListener('click', regenerate);
+
+  els.prompt.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      send();
+    }
+  });
+
+  // ---- Init ----
+
+  if (!window.ChatSDK || typeof window.ChatSDK.streamChat !== 'function') {
+    setStatus('error', 'Error');
+    showError('The chat service is not available.');
+    els.send.disabled = true;
+    els.prompt.disabled = true;
+  } else {
+    setStatus('', 'Ready');
+  }
+
+  renderHistory();
+  updateButtons();
+})();
+</script>
+</body>
+</html>

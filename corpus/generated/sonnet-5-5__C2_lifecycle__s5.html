@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat assistant</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --muted: #4b5563;
+    --border: #6b7280;
+    --user-bg: #e6eefc;
+    --asst-bg: #f3f4f6;
+    --primary: #1d4ed8;
+    --primary-fg: #ffffff;
+    --focus: #1a56db;
+    --err: #9b1c1c;
+    --err-bg: #fdecec;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font: 1rem/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  main {
+    max-width: 52rem;
+    margin: 0 auto;
+    padding: 0.75rem 1rem;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 32rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  h1 { font-size: 1.35rem; margin: 0; }
+
+  :focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .transcript {
+    flex: 1 1 auto;
+    min-height: 10rem;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+  }
+  .empty { color: var(--muted); margin: 0; }
+  .messages { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.75rem; }
+  .message {
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    max-width: 100%;
+  }
+  .message.user { background: var(--user-bg); border-left: 6px solid var(--primary); }
+  .message.assistant { background: var(--asst-bg); border-left: 6px solid #374151; }
+  .head { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; font-size: 0.9rem; margin-bottom: 0.25rem; }
+  .who { font-weight: 700; }
+  .state { color: var(--muted); }
+  .state.error { color: var(--err); font-weight: 600; }
+  .body { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .placeholder { color: var(--muted); font-style: italic; }
+  .detail {
+    margin: 0.5rem 0 0;
+    padding: 0.25rem 0.5rem;
+    background: var(--err-bg);
+    color: var(--err);
+    border: 1px solid var(--err);
+    border-radius: 0.25rem;
+    white-space: normal;
+  }
+
+  .statusbar {
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+    min-height: 1.75rem;
+    padding: 0.125rem 0.25rem;
+  }
+  .statusbar .label { font-weight: 700; }
+  #status { overflow-wrap: anywhere; }
+
+  form { display: flex; flex-direction: column; gap: 0.35rem; }
+  label { font-weight: 700; }
+  textarea {
+    width: 100%;
+    font: inherit;
+    color: var(--fg);
+    background: #fff;
+    border: 2px solid var(--border);
+    border-radius: 0.375rem;
+    padding: 0.5rem;
+    resize: vertical;
+    min-height: 4.5rem;
+  }
+  .hint { margin: 0; font-size: 0.9rem; color: var(--muted); }
+  .actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  button {
+    font: inherit;
+    font-weight: 600;
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    border: 2px solid #374151;
+    background: #fff;
+    color: #111827;
+    cursor: pointer;
+  }
+  button.primary { background: var(--primary); border-color: var(--primary); color: var(--primary-fg); }
+  button:hover { filter: brightness(0.95); }
+  button[aria-disabled="true"] {
+    background: #e5e7eb;
+    border-color: #6b7280;
+    color: #4b5563;
+    cursor: not-allowed;
+    filter: none;
+  }
+  @media (forced-colors: active) {
+    .message, .transcript, button, textarea { border: 2px solid CanvasText; }
+    button[aria-disabled="true"] { color: GrayText; border-color: GrayText; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Chat assistant</h1>
+
+  <div id="transcript" class="transcript" role="region" aria-label="Conversation" tabindex="0">
+    <p id="empty" class="empty">No messages yet. Type a message below to start.</p>
+    <ol id="messages" class="messages" aria-label="Messages"></ol>
+  </div>
+
+  <div class="statusbar">
+    <span class="label" aria-hidden="true">Status:</span>
+    <span id="status" role="status">Ready</span>
+  </div>
+
+  <form id="composer" autocomplete="off">
+    <label for="prompt">Message</label>
+    <textarea id="prompt" rows="3" aria-describedby="hint"></textarea>
+    <p id="hint" class="hint">Press Enter to send, Shift+Enter for a new line.</p>
+    <div class="actions">
+      <button type="submit" id="send" class="primary">Send</button>
+      <button type="button" id="stop">Stop</button>
+      <button type="button" id="regenerate">Regenerate</button>
+    </div>
+  </form>
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  var transcript = document.getElementById('transcript');
+  var list = document.getElementById('messages');
+  var emptyNote = document.getElementById('empty');
+  var statusEl = document.getElementById('status');
+  var form = document.getElementById('composer');
+  var prompt = document.getElementById('prompt');
+  var sendBtn = document.getElementById('send');
+  var stopBtn = document.getElementById('stop');
+  var regenBtn = document.getElementById('regenerate');
+
+  var history = [];   // {role, content, status, el, textNode, placeholder, stateEl, detailEl}
+  var current = null; // active request {msg, active, handle}
+
+  function announce(text) {
+    statusEl.textContent = text;
+  }
+
+  function setAria(btn, disabled) {
+    // aria-disabled (not the disabled attribute) so keyboard focus is never lost
+    btn.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+  }
+
+  function lastUserIndex() {
+    for (var i = history.length - 1; i >= 0; i--) {
+      if (history[i].role === 'user') return i;
+    }
+    return -1;
+  }
+
+  function updateUi() {
+    var streaming = !!current;
+    setAria(sendBtn, streaming);
+    setAria(stopBtn, !streaming);
+    setAria(regenBtn, streaming || lastUserIndex() < 0);
+    emptyNote.hidden = history.length > 0;
+  }
+
+  function atBottom() {
+    return transcript.scrollHeight - transcript.scrollTop - transcript.clientHeight < 40;
+  }
+  function scrollToBottom() {
+    transcript.scrollTop = transcript.scrollHeight;
+  }
+
+  var STATE_LABELS = {
+    streaming: 'Generating\u2026',
+    stopped: 'Stopped',
+    done: 'Finished',
+    error: 'Error',
+    sent: ''
+  };
+
+  function renderState(m, detail) {
+    m.stateEl.textContent = STATE_LABELS[m.status] || '';
+    m.stateEl.className = 'state' + (m.status === 'error' ? ' error' : '');
+    if (m.status === 'error' && detail) {
+      m.detailEl.textContent = detail;
+      m.detailEl.hidden = false;
+    } else {
+      m.detailEl.hidden = true;
+    }
+    if (m.role === 'assistant') {
+      if (m.content) {
+        m.placeholder.hidden = true;
+      } else {
+        m.placeholder.hidden = false;
+        m.placeholder.textContent =
+          m.status === 'streaming' ? 'Waiting for the first part of the answer\u2026'
+          : m.status === 'stopped' ? '(Stopped before any text arrived.)'
+          : m.status === 'error' ? '(No text was received.)'
+          : '(The answer was empty.)';
+      }
+    }
+  }
+
+  function addMessage(role, content, status) {
+    var li = document.createElement('li');
+    li.className = 'message ' + role;
+
+    var head = document.createElement('div');
+    head.className = 'head';
+    var who = document.createElement('span');
+    who.className = 'who';
+    who.textContent = role === 'user' ? 'You' : 'Assistant';
+    var stateEl = document.createElement('span');
+    head.appendChild(who);
+    head.appendChild(stateEl);
+
+    var body = document.createElement('div');
+    body.className = 'body';
+    var textNode = document.createTextNode(content);
+    var textSpan = document.createElement('span');
+    textSpan.appendChild(textNode);
+    var placeholder = document.createElement('span');
+    placeholder.className = 'placeholder';
+    placeholder.hidden = true;
+    body.appendChild(textSpan);
+    body.appendChild(placeholder);
+
+    var detailEl = document.createElement('p');
+    detailEl.className = 'detail';
+    detailEl.hidden = true;
+
+    li.appendChild(head);
+    li.appendChild(body);
+    li.appendChild(detailEl);
+
+    var m = {
+      role: role, content: content, status: status,
+      el: li, textNode: textNode, placeholder: placeholder,
+      stateEl: stateEl, detailEl: detailEl
+    };
+    history.push(m);
+    list.appendChild(li);
+    renderState(m);
+    emptyNote.hidden = true;
+    scrollToBottom();
+    return m;
+  }
+
+  function settle(req, status, detail) {
+    req.active = false;
+    if (current === req) current = null;
+    req.msg.status = status;
+    renderState(req.msg, detail);
+    updateUi();
+  }
+
+  function startStream(startText) {
+    var payload = history
+      .filter(function (m) { return !(m.role === 'assistant' && !m.content); })
+      .map(function (m) { return { role: m.role, content: m.content }; });
+
+    var msg = addMessage('assistant', '', 'streaming');
+    var req = { msg: msg, active: true, handle: null };
+    current = req;
+    updateUi();
+    announce(startText || 'Generating answer\u2026');
+
+    try {
+      req.handle = window.ChatSDK.streamChat(payload, {
+        onToken: function (text) {
+          if (!req.active) return; // ignore chunks from a stopped/finished answer
+          if (typeof text !== 'string' || !text) return;
+          var follow = atBottom();
+          req.msg.content += text;
+          req.msg.textNode.appendData(text);
+          req.msg.placeholder.hidden = true;
+          if (follow) scrollToBottom();
+        },
+        onDone: function () {
+          if (!req.active) return;
+          settle(req, 'done');
+          announce('Answer finished.');
+        },
+        onError: function (err) {
+          if (!req.active) return;
+          var text = (err && err.message) ? String(err.message) : 'Something went wrong while generating the answer.';
+          settle(req, 'error', text);
+          announce('Error: the answer failed. ' + (req.msg.content ? 'The partial answer was kept. ' : '') + text);
+        }
+      });
+    } catch (e) {
+      if (req.active) {
+        var t = (e && e.message) ? String(e.message) : 'Could not start the answer.';
+        settle(req, 'error', t);
+        announce('Error: the answer could not be started. ' + t);
+      }
+    }
+  }
+
+  function send() {
+    if (current) {
+      announce('An answer is still generating. Press Stop first, then send your message.');
+      return;
+    }
+    var text = prompt.value.trim();
+    if (!text) {
+      announce('Type a message before sending.');
+      return;
+    }
+    prompt.value = '';
+    addMessage('user', text, 'sent');
+    startStream('Generating answer\u2026');
+  }
+
+  function stop() {
+    if (!current) {
+      announce('No answer is generating right now.');
+      return;
+    }
+    var req = current;
+    req.active = false; // from here on, late chunks are ignored
+    current = null;
+    try { if (req.handle && typeof req.handle.abort === 'function') req.handle.abort(); } catch (e) { /* ignore */ }
+    settle(req, 'stopped');
+    announce(req.msg.content
+      ? 'Answer stopped. The partial answer was kept.'
+      : 'Answer stopped before any text arrived.');
+  }
+
+  function regenerate() {
+    if (current) {
+      announce('An answer is still generating. Press Stop first, then regenerate.');
+      return;
+    }
+    var idx = lastUserIndex();
+    if (idx < 0) {
+      announce('There is no message to regenerate an answer for.');
+      return;
+    }
+    // Remove the previous answer(s) after the last user message
+    while (history.length > idx + 1) {
+      var removed = history.pop();
+      if (removed.el.parentNode) removed.el.parentNode.removeChild(removed.el);
+    }
+    startStream('Regenerating answer\u2026');
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    send();
+  });
+  stopBtn.addEventListener('click', stop);
+  regenBtn.addEventListener('click', regenerate);
+
+  prompt.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      e.preventDefault();
+      send();
+    }
+  });
+
+  updateUi();
+})();
+</script>
+</body>
+</html>

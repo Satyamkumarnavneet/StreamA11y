@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat Assistant</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f7f7f8;
+    --fg: #1d1d1f;
+    --panel: #ffffff;
+    --border: #d9d9de;
+    --user: #dbeafe;
+    --assistant: #ffffff;
+    --accent: #2563eb;
+    --muted: #6b7280;
+    --err: #b91c1c;
+    --err-bg: #fee2e2;
+    --warn: #92400e;
+    --ok: #166534;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111113;
+      --fg: #eeeeee;
+      --panel: #1b1b1f;
+      --border: #333338;
+      --user: #1e3a5f;
+      --assistant: #1b1b1f;
+      --accent: #60a5fa;
+      --muted: #9ca3af;
+      --err: #f87171;
+      --err-bg: #3b1d1d;
+      --warn: #fbbf24;
+      --ok: #4ade80;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    padding: 12px 16px;
+    font-weight: 600;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+  #status {
+    padding: 6px 16px;
+    min-height: 32px;
+    font-size: 13px;
+    color: var(--muted);
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  #status.generating { color: var(--accent); }
+  #status.stopped { color: var(--warn); }
+  #status.done { color: var(--ok); }
+  #status.error { color: var(--err); font-weight: 600; }
+  #status.generating::before {
+    content: "";
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 1s infinite ease-in-out;
+  }
+  @keyframes pulse { 0%,100% { opacity: .2; } 50% { opacity: 1; } }
+
+  #log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .msg {
+    max-width: 760px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .msg.user { background: var(--user); }
+  .msg.assistant { background: var(--assistant); }
+  .role {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .body {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .notice {
+    max-width: 760px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--err);
+    background: var(--err-bg);
+    color: var(--err);
+    font-size: 14px;
+  }
+  .empty {
+    margin: auto;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  footer {
+    padding: 12px 16px;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+  }
+  .composer {
+    max-width: 760px;
+    margin: 0 auto;
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+  #prompt {
+    flex: 1;
+    min-width: 200px;
+    min-height: 44px;
+    max-height: 240px;
+    resize: vertical;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--fg);
+    font: inherit;
+  }
+  .controls { display: flex; gap: 8px; }
+  button {
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--fg);
+    font: inherit;
+    cursor: pointer;
+  }
+  button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+</style>
+</head>
+<body>
+<header>Chat Assistant</header>
+<div id="status" role="status" aria-live="polite">Ready.</div>
+<main id="log"></main>
+<footer>
+  <div class="composer">
+    <textarea id="prompt" placeholder="Type a message (Enter to send, Shift+Enter for a new line)" aria-label="Message"></textarea>
+    <div class="controls">
+      <button id="send" class="primary" type="button">Send</button>
+      <button id="stop" type="button">Stop</button>
+      <button id="regenerate" type="button">Regenerate</button>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  const logEl = document.getElementById('log');
+  const statusEl = document.getElementById('status');
+  const promptEl = document.getElementById('prompt');
+  const sendBtn = document.getElementById('send');
+  const stopBtn = document.getElementById('stop');
+  const regenBtn = document.getElementById('regenerate');
+
+  const hasSDK = !!(window.ChatSDK && typeof window.ChatSDK.streamChat === 'function');
+
+  // Conversation history: [{ role: 'user' | 'assistant', content: string }]
+  let history = [];
+  // Whether an answer is currently streaming
+  let busy = false;
+  // Handle returned by ChatSDK.streamChat for the active stream
+  let activeHandle = null;
+  // Incremented whenever a stream is stopped or replaced, so late callbacks are ignored
+  let streamId = 0;
+  // The assistant entry currently being streamed into
+  let pending = null;
+  // DOM node showing the text of the pending assistant entry
+  let streamingBody = null;
+
+  function setStatus(text, kind) {
+    statusEl.textContent = text;
+    statusEl.className = kind || '';
+  }
+
+  function describeError(err) {
+    if (!err) return 'unknown error';
+    if (typeof err === 'string') return err;
+    return err.message || String(err);
+  }
+
+  function lastUserIndex() {
+    for (let i = history.length - 1; i >= 0; i--) {
+      if (history[i].role === 'user') return i;
+    }
+    return -1;
+  }
+
+  // Move keyboard focus to a control that is still usable.
+  // Called only when the focused control was just disabled.
+  function restoreFocus() {
+    const target = busy ? stopBtn : promptEl;
+    if (!target.disabled) target.focus();
+  }
+
+  function updateControls() {
+    // Remember which control (if any) currently has focus, because
+    // disabling a focused button drops focus to <body>.
+    const focusedBefore = document.activeElement;
+
+    sendBtn.disabled = busy || !hasSDK;
+    stopBtn.disabled = !busy;
+    regenBtn.disabled = busy || !hasSDK || lastUserIndex() < 0;
+
+    if (
+      focusedBefore &&
+      (focusedBefore === sendBtn || focusedBefore === stopBtn || focusedBefore === regenBtn) &&
+      focusedBefore.disabled
+    ) {
+      restoreFocus();
+    }
+  }
+
+  function renderAll() {
+    logEl.textContent = '';
+    if (history.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.textContent = 'Send a message to start the conversation.';
+      logEl.append(empty);
+      return;
+    }
+    for (const entry of history) {
+      const el = document.createElement('div');
+      el.className = 'msg ' + entry.role;
+
+      const label = document.createElement('div');
+      label.className = 'role';
+      label.textContent = entry.role === 'user' ? 'You' : 'Assistant';
+
+      const body = document.createElement('div');
+      body.className = 'body';
+      body.textContent = entry.content;
+
+      el.append(label, body);
+      logEl.append(el);
+    }
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function addErrorNotice(message) {
+    const note = document.createElement('div');
+    note.className = 'notice';
+    note.setAttribute('role', 'alert');
+    note.textContent = message;
+    logEl.append(note);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  // Ends the current streaming turn and updates the UI.
+  // kind: 'done' | 'stopped' | 'error'
+  function endStream(kind, message) {
+    busy = false;
+    activeHandle = null;
+    const entry = pending;
+    pending = null;
+    streamingBody = null;
+
+    // Drop an empty placeholder if nothing was produced (stop/error).
+    if (entry && !entry.content && kind !== 'done') {
+      const idx = history.indexOf(entry);
+      if (idx >= 0) history.splice(idx, 1);
+    }
+
+    renderAll();
+    if (kind === 'error') addErrorNotice(message);
+    setStatus(message, kind);
+    updateControls();
+  }
+
+  function startStream() {
+    const id = ++streamId;
+
+    // Snapshot the history to send (before adding the placeholder).
+    const apiMessages = history.map(m => ({ role: m.role, content: m.content }));
+
+    const entry = { role: 'assistant', content: '' };
+    history.push(entry);
+    pending = entry;
+    busy = true;
+
+    renderAll();
+    streamingBody = logEl.querySelector('.msg:last-child .body');
+    if (streamingBody) streamingBody.textContent = '…';
+    setStatus('Assistant is generating…', 'generating');
+    updateControls();
+
+    let handle = null;
+    try {
+      handle = window.ChatSDK.streamChat(apiMessages, {
+        onToken(text) {
+          // Ignore tokens from stopped/replaced streams (including late in-flight chunks).
+          if (id !== streamId || !busy) return;
+          const atBottom = logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 60;
+          entry.content += String(text);
+          if (streamingBody) streamingBody.textContent = entry.content;
+          if (atBottom) logEl.scrollTop = logEl.scrollHeight;
+        },
+        onDone() {
+          if (id !== streamId || !busy) return;
+          endStream('done', 'Finished.');
+        },
+        onError(err) {
+          if (id !== streamId || !busy) return;
+          endStream('error', 'Error: ' + describeError(err));
+        }
+      });
+    } catch (err) {
+      if (id === streamId && busy) {
+        endStream('error', 'Error: ' + describeError(err));
+      }
+      return;
+    }
+
+    // Only keep the handle if the stream is still the active one.
+    if (id === streamId && busy) activeHandle = handle;
+  }
+
+  function send() {
+    if (busy || !hasSDK) return;
+    const text = promptEl.value.trim();
+    if (!text) return;
+    history.push({ role: 'user', content: text });
+    promptEl.value = '';
+    startStream();
+  }
+
+  function stop() {
+    if (!busy) return;
+    // Invalidate the current stream so any in-flight tokens are ignored.
+    streamId++;
+    const handle = activeHandle;
+    activeHandle = null;
+    try {
+      if (handle && typeof handle.abort === 'function') handle.abort();
+    } catch (e) {
+      // Ignore abort failures; the stream is considered stopped locally.
+    }
+    endStream('stopped', 'Stopped. Partial answer kept.');
+  }
+
+  function regenerate() {
+    if (busy) return;
+    const u = lastUserIndex();
+    if (u < 0) return;
+    // Remove the previous answer(s) that follow the last user message.
+    history.length = u + 1;
+    startStream();
+  }
+
+  sendBtn.addEventListener('click', send);
+  stopBtn.addEventListener('click', stop);
+  regenBtn.addEventListener('click', regenerate);
+
+  promptEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      send();
+    }
+  });
+
+  renderAll();
+  if (hasSDK) {
+    setStatus('Ready.');
+  } else {
+    setStatus('Chat service unavailable: window.ChatSDK.streamChat is not defined.', 'error');
+  }
+  updateControls();
+})();
+</script>
+</body>
+</html>

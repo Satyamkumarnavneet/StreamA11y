@@ -1,0 +1,449 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat assistant</title>
+<style>
+  :root {
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    background: #f5f5f5;
+    color: #1a1a1a;
+  }
+  .app {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 16px;
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+  h1 {
+    font-size: 1.25rem;
+    margin: 0 0 8px;
+  }
+  #status {
+    min-height: 1.5em;
+    margin: 0 0 8px;
+    font-size: 0.95rem;
+    color: #1a1a1a;
+  }
+  #transcript {
+    flex: 1 1 auto;
+    min-height: 120px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #767676;
+    border-radius: 8px;
+    padding: 12px;
+  }
+  #empty {
+    color: #444;
+    margin: 0;
+  }
+  .msg {
+    margin: 0 0 16px;
+    padding: 10px 12px;
+    border-radius: 8px;
+  }
+  .msg-user { background: #e8f0fe; }
+  .msg-assistant { background: #f0f0f0; }
+  .msg-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin: 0 0 4px;
+  }
+  .msg-body {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .msg-note {
+    margin: 8px 0 0;
+    font-style: italic;
+    font-size: 0.9rem;
+    color: #333;
+  }
+  .caret {
+    display: inline-block;
+    width: 0.5em;
+    height: 1em;
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    background: #1a1a1a;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .caret { animation: blink 1s steps(2, start) infinite; }
+  }
+  @keyframes blink { to { visibility: hidden; } }
+
+  #composer {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  label[for="prompt"] {
+    font-weight: 600;
+  }
+  textarea {
+    font: inherit;
+    min-height: 4.5em;
+    padding: 8px;
+    border: 1px solid #767676;
+    border-radius: 6px;
+    background: #fff;
+    color: #1a1a1a;
+    resize: vertical;
+  }
+  .buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  button {
+    font: inherit;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid #1a4d8f;
+    background: #1a4d8f;
+    color: #fff;
+    cursor: pointer;
+  }
+  button.secondary {
+    background: #fff;
+    color: #1a1a1a;
+    border-color: #767676;
+  }
+  /* aria-disabled keeps the button focusable so keyboard focus is never lost. */
+  button[aria-disabled="true"] {
+    background: #e0e0e0;
+    color: #333;
+    border-color: #8a8a8a;
+    cursor: not-allowed;
+  }
+  :focus-visible {
+    outline: 3px solid #0b57d0;
+    outline-offset: 2px;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .hint {
+    font-size: 0.9rem;
+    color: #333;
+    margin: 0;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <main style="display:flex;flex-direction:column;flex:1 1 auto;min-height:0;">
+    <h1>Chat assistant</h1>
+
+    <p id="status" role="status" aria-live="polite"></p>
+
+    <section id="transcript" tabindex="0" aria-label="Conversation" aria-describedby="empty">
+      <p id="empty">No messages yet. Type a message below to start.</p>
+    </section>
+
+    <div id="composer">
+      <label for="prompt">Your message</label>
+      <textarea id="prompt" rows="3" aria-describedby="prompt-hint"></textarea>
+      <p id="prompt-hint" class="hint">Press Enter to send. Press Shift+Enter for a new line.</p>
+      <div class="buttons">
+        <button id="send" type="button" aria-controls="transcript">Send</button>
+        <button id="stop" type="button" class="secondary" aria-controls="transcript" aria-disabled="true">Stop</button>
+        <button id="regenerate" type="button" class="secondary" aria-controls="transcript" aria-disabled="true">Regenerate</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var els = {
+    transcript: document.getElementById('transcript'),
+    empty: document.getElementById('empty'),
+    prompt: document.getElementById('prompt'),
+    send: document.getElementById('send'),
+    stop: document.getElementById('stop'),
+    regenerate: document.getElementById('regenerate'),
+    status: document.getElementById('status')
+  };
+
+  // Conversation history sent to the model: {role, content}.
+  var history = [];
+  // The answer currently streaming, or null.
+  var current = null;
+  var messageSeq = 0;
+  var announceTimer = null;
+
+  // Status messages go to the polite status region only.
+  // Clearing and then setting the text makes repeated messages announce again.
+  function announce(text) {
+    els.status.textContent = '';
+    clearTimeout(announceTimer);
+    announceTimer = setTimeout(function () {
+      els.status.textContent = text;
+    }, 80);
+  }
+
+  // aria-disabled (not the disabled attribute) keeps focus on the control
+  // so keyboard focus is not lost when a button becomes unavailable.
+  function setAriaDisabled(btn, on) {
+    btn.setAttribute('aria-disabled', on ? 'true' : 'false');
+  }
+
+  function hasUserMessage() {
+    for (var i = 0; i < history.length; i++) {
+      if (history[i].role === 'user') return true;
+    }
+    return false;
+  }
+
+  function updateControls() {
+    var busy = current !== null;
+    setAriaDisabled(els.send, busy);
+    setAriaDisabled(els.stop, !busy);
+    setAriaDisabled(els.regenerate, busy || !hasUserMessage());
+  }
+
+  function updateEmptyState() {
+    els.empty.hidden = els.transcript.querySelector('.msg') !== null;
+  }
+
+  function scrollToEnd(force) {
+    var t = els.transcript;
+    var nearBottom = t.scrollHeight - t.scrollTop - t.clientHeight < 80;
+    if (force || nearBottom) {
+      t.scrollTop = t.scrollHeight;
+    }
+  }
+
+  // Builds a message article. Text is set with textContent only (no HTML injection).
+  function buildMessage(role) {
+    messageSeq += 1;
+    var labelId = 'msg-label-' + messageSeq;
+
+    var article = document.createElement('article');
+    article.className = 'msg msg-' + role;
+    article.setAttribute('aria-labelledby', labelId);
+
+    var label = document.createElement('p');
+    label.id = labelId;
+    label.className = 'msg-label';
+    label.textContent = role === 'user' ? 'You' : 'Assistant';
+
+    var body = document.createElement('div');
+    body.className = 'msg-body';
+    var textNode = document.createTextNode('');
+    body.appendChild(textNode);
+
+    article.appendChild(label);
+    article.appendChild(body);
+
+    return { article: article, body: body, textNode: textNode, caret: null };
+  }
+
+  function appendUserMessage(text) {
+    var m = buildMessage('user');
+    m.textNode.data = text;
+    els.transcript.appendChild(m.article);
+    history.push({ role: 'user', content: text });
+    updateEmptyState();
+    scrollToEnd(true);
+  }
+
+  // Ends a request exactly once. Partial text is kept for stopped and errored answers.
+  function settle(req, outcome, detail) {
+    req.closed = true;
+    if (current === req) current = null;
+
+    if (req.caret) req.caret.remove();
+    req.article.removeAttribute('aria-busy');
+
+    if (req.text) {
+      history.push({ role: 'assistant', content: req.text });
+    }
+
+    var note = '';
+    var status = '';
+    if (outcome === 'done') {
+      status = 'Answer finished.';
+    } else if (outcome === 'stopped') {
+      note = 'Stopped. Partial answer kept.';
+      status = 'Answer stopped. Partial answer kept.';
+    } else {
+      var reason = detail || 'Something went wrong.';
+      note = 'Error: ' + reason;
+      status = 'Error: ' + reason + ' Use Regenerate to try again.';
+    }
+
+    if (note) {
+      var p = document.createElement('p');
+      p.className = 'msg-note';
+      p.textContent = note;
+      req.article.appendChild(p);
+    }
+
+    updateControls();
+    announce(status);
+    scrollToEnd(false);
+  }
+
+  function startStream() {
+    var m = buildMessage('assistant');
+    var caret = document.createElement('span');
+    caret.className = 'caret';
+    caret.setAttribute('aria-hidden', 'true');
+    m.body.appendChild(caret);
+    m.caret = caret;
+    m.article.setAttribute('aria-busy', 'true');
+    els.transcript.appendChild(m.article);
+    updateEmptyState();
+
+    var req = {
+      article: m.article,
+      textNode: m.textNode,
+      caret: caret,
+      text: '',
+      closed: false,
+      handle: null
+    };
+    current = req;
+    updateControls();
+    announce('Generating answer.');
+    scrollToEnd(true);
+
+    var messages = history.map(function (x) {
+      return { role: x.role, content: x.content };
+    });
+
+    try {
+      if (!window.ChatSDK || typeof window.ChatSDK.streamChat !== 'function') {
+        throw new Error('Chat service is unavailable.');
+      }
+      req.handle = window.ChatSDK.streamChat(messages, {
+        onToken: function (chunk) {
+          // Ignore chunks from a stopped or finished answer, including ones that were in flight.
+          if (req.closed) return;
+          req.text += String(chunk);
+          req.textNode.data = req.text;
+          scrollToEnd(false);
+        },
+        onDone: function () {
+          if (req.closed) return;
+          settle(req, 'done');
+        },
+        onError: function (err) {
+          if (req.closed) return;
+          var msg = (err && err.message) ? err.message : 'The answer could not be completed.';
+          settle(req, 'error', msg);
+        }
+      });
+    } catch (err) {
+      if (!req.closed) {
+        settle(req, 'error', (err && err.message) ? err.message : 'The answer could not be started.');
+      }
+    }
+  }
+
+  function sendPrompt() {
+    if (current !== null) {
+      announce('An answer is still generating. Press Stop to end it first.');
+      return;
+    }
+    var text = els.prompt.value.trim();
+    if (!text) {
+      announce('Type a message before sending.');
+      return;
+    }
+    // Focus stays where it is: the textarea when sent with Enter, the Send button when clicked.
+    els.prompt.value = '';
+    appendUserMessage(text);
+    startStream();
+  }
+
+  function stopStream() {
+    var req = current;
+    if (!req || req.closed) return;
+    req.closed = true;
+    try {
+      if (req.handle && typeof req.handle.abort === 'function') {
+        req.handle.abort();
+      }
+    } catch (e) {
+      // The partial answer is kept regardless of abort errors.
+    }
+    settle(req, 'stopped');
+  }
+
+  function regenerate() {
+    if (current !== null) {
+      announce('An answer is still generating. Press Stop to end it first.');
+      return;
+    }
+    if (!hasUserMessage()) {
+      announce('There is no message to regenerate.');
+      return;
+    }
+
+    // Remove the last assistant bubble (including an empty or errored one) and its history entry.
+    var lastChild = els.transcript.lastElementChild;
+    if (lastChild && lastChild.classList.contains('msg-assistant')) {
+      lastChild.remove();
+    }
+    if (history.length && history[history.length - 1].role === 'assistant') {
+      history.pop();
+    }
+
+    updateEmptyState();
+    startStream();
+  }
+
+  els.send.addEventListener('click', sendPrompt);
+  els.stop.addEventListener('click', function () {
+    if (current === null) {
+      announce('No answer is generating.');
+      return;
+    }
+    stopStream();
+  });
+  els.regenerate.addEventListener('click', regenerate);
+
+  els.prompt.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      sendPrompt();
+    }
+  });
+
+  updateControls();
+  updateEmptyState();
+  els.prompt.focus();
+})();
+</script>
+</body>
+</html>
+```

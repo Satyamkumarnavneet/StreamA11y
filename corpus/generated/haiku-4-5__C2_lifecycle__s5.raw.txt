@@ -1,0 +1,491 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        #chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background: white;
+        }
+
+        #messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 8px;
+            line-height: 1.5;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+
+        .message.user .message-content {
+            background: #007bff;
+            color: white;
+        }
+
+        .message.assistant .message-content {
+            background: #e9ecef;
+            color: #333;
+        }
+
+        .message.error .message-content {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .message-role {
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: #666;
+            align-self: flex-end;
+            margin-bottom: 4px;
+        }
+
+        .message.user .message-role {
+            order: 2;
+        }
+
+        .message.user .message-content {
+            order: 1;
+        }
+
+        .message.assistant .message-role {
+            order: 1;
+        }
+
+        .message.assistant .message-content {
+            order: 2;
+        }
+
+        #input-area {
+            padding: 20px;
+            border-top: 1px solid #e0e0e0;
+            background: white;
+            display: flex;
+            gap: 10px;
+        }
+
+        #prompt {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 44px;
+            max-height: 200px;
+        }
+
+        #prompt:focus {
+            outline: 2px solid #007bff;
+            outline-offset: 2px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            min-height: 44px;
+            min-width: 44px;
+            white-space: nowrap;
+        }
+
+        #send {
+            background: #007bff;
+            color: white;
+        }
+
+        #send:hover:not(:disabled) {
+            background: #0056b3;
+        }
+
+        #send:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        #send:focus {
+            outline: 2px solid #0056b3;
+            outline-offset: 2px;
+        }
+
+        #stop, #regenerate {
+            background: #6c757d;
+            color: white;
+        }
+
+        #stop:hover:not(:disabled), #regenerate:hover:not(:disabled) {
+            background: #5a6268;
+        }
+
+        #stop:disabled, #regenerate:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        #stop:focus, #regenerate:focus {
+            outline: 2px solid #5a6268;
+            outline-offset: 2px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        #status {
+            position: absolute;
+            left: -10000px;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        .generating-indicator {
+            font-size: 0.875rem;
+            color: #666;
+            font-style: italic;
+            padding: 4px 0;
+        }
+
+        @media (max-width: 768px) {
+            #input-area {
+                flex-wrap: wrap;
+            }
+
+            .button-group {
+                width: 100%;
+            }
+
+            .message-content {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <div id="messages" role="log" aria-label="Chat conversation"></div>
+        <div id="input-area">
+            <textarea
+                id="prompt"
+                placeholder="Type your message..."
+                aria-label="Message input"
+            ></textarea>
+            <div class="button-group">
+                <button id="send" aria-label="Send message">Send</button>
+                <button id="stop" disabled aria-label="Stop generating response">Stop</button>
+                <button id="regenerate" disabled aria-label="Regenerate last response">Regenerate</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="status" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <script>
+        // State management
+        const state = {
+            messages: [],
+            isGenerating: false,
+            currentHandle: null,
+            lastUserMessage: null,
+            currentAssistantMessage: null
+        };
+
+        // DOM elements
+        const messagesContainer = document.getElementById('messages');
+        const promptInput = document.getElementById('prompt');
+        const sendButton = document.getElementById('send');
+        const stopButton = document.getElementById('stop');
+        const regenerateButton = document.getElementById('regenerate');
+        const statusElement = document.getElementById('status');
+
+        // Utility functions
+        function setStatus(message) {
+            statusElement.textContent = message;
+        }
+
+        function updateButtonStates() {
+            const hasMessages = state.messages.length > 0;
+            const lastMessageIsUser = hasMessages && state.messages[state.messages.length - 1].role === 'user';
+
+            sendButton.disabled = state.isGenerating;
+            stopButton.disabled = !state.isGenerating;
+            regenerateButton.disabled = state.isGenerating || !lastMessageIsUser;
+            promptInput.disabled = state.isGenerating;
+        }
+
+        function scrollToBottom() {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function addMessageToDOM(role, content, isPartial = false) {
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${role}`;
+
+            const roleEl = document.createElement('div');
+            roleEl.className = 'message-role';
+            roleEl.textContent = role === 'user' ? 'You' : 'Assistant';
+
+            const contentEl = document.createElement('div');
+            contentEl.className = 'message-content';
+            contentEl.textContent = content;
+
+            if (isPartial && role === 'assistant') {
+                contentEl.id = 'current-assistant-message';
+                contentEl.setAttribute('aria-live', 'off');
+            }
+
+            messageEl.appendChild(roleEl);
+            messageEl.appendChild(contentEl);
+            messagesContainer.appendChild(messageEl);
+
+            scrollToBottom();
+
+            return contentEl;
+        }
+
+        function addErrorMessageToDOM(error) {
+            const messageEl = document.createElement('div');
+            messageEl.className = 'message error';
+
+            const roleEl = document.createElement('div');
+            roleEl.className = 'message-role';
+            roleEl.textContent = 'Error';
+
+            const contentEl = document.createElement('div');
+            contentEl.className = 'message-content';
+            contentEl.textContent = `An error occurred: ${error}`;
+
+            messageEl.appendChild(roleEl);
+            messageEl.appendChild(contentEl);
+            messagesContainer.appendChild(messageEl);
+
+            scrollToBottom();
+        }
+
+        function createGeneratingIndicator() {
+            const indicatorEl = document.createElement('div');
+            indicatorEl.className = 'generating-indicator';
+            indicatorEl.id = 'generating-indicator';
+            indicatorEl.setAttribute('aria-live', 'off');
+            indicatorEl.textContent = 'Generating response...';
+            messagesContainer.appendChild(indicatorEl);
+            scrollToBottom();
+            return indicatorEl;
+        }
+
+        function removeGeneratingIndicator() {
+            const indicator = document.getElementById('generating-indicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
+        function addUserMessage(text) {
+            state.messages.push({ role: 'user', content: text });
+            state.lastUserMessage = text;
+            addMessageToDOM('user', text);
+        }
+
+        async function sendMessage() {
+            const text = promptInput.value.trim();
+            if (!text) return;
+
+            promptInput.value = '';
+            addUserMessage(text);
+            await generateResponse();
+        }
+
+        async function generateResponse() {
+            if (state.isGenerating) return;
+
+            state.isGenerating = true;
+            updateButtonStates();
+            createGeneratingIndicator();
+            setStatus('Assistant is generating a response');
+
+            let fullResponse = '';
+            let messageContentEl = null;
+
+            state.currentHandle = window.ChatSDK.streamChat(state.messages, {
+                onToken: (text) => {
+                    if (state.currentHandle.aborted) return;
+
+                    fullResponse += text;
+
+                    if (!messageContentEl) {
+                        removeGeneratingIndicator();
+                        messageContentEl = addMessageToDOM('assistant', '', true);
+                    }
+
+                    messageContentEl.textContent = fullResponse;
+                    scrollToBottom();
+                },
+                onDone: () => {
+                    removeGeneratingIndicator();
+                    state.isGenerating = false;
+                    state.currentHandle = null;
+                    state.currentAssistantMessage = fullResponse;
+
+                    if (messageContentEl) {
+                        messageContentEl.id = '';
+                        messageContentEl.removeAttribute('aria-live');
+                    }
+
+                    state.messages.push({ role: 'assistant', content: fullResponse });
+                    updateButtonStates();
+                    setStatus('Response complete');
+                    promptInput.focus();
+                },
+                onError: (error) => {
+                    removeGeneratingIndicator();
+                    state.isGenerating = false;
+                    state.currentHandle = null;
+
+                    if (messageContentEl) {
+                        messageContentEl.id = '';
+                        messageContentEl.removeAttribute('aria-live');
+                    }
+
+                    addErrorMessageToDOM(error.message || 'Unknown error');
+                    updateButtonStates();
+                    setStatus(`Error: ${error.message || 'Unknown error'}`);
+                    promptInput.focus();
+                }
+            });
+        }
+
+        function stopGeneration() {
+            if (!state.isGenerating || !state.currentHandle) return;
+
+            state.currentHandle.abort();
+            removeGeneratingIndicator();
+            state.isGenerating = false;
+            state.currentHandle = null;
+
+            const messageContentEl = document.getElementById('current-assistant-message');
+            if (messageContentEl) {
+                messageContentEl.id = '';
+                messageContentEl.removeAttribute('aria-live');
+                // Keep the partial response in the conversation
+                if (messageContentEl.textContent) {
+                    state.messages.push({ role: 'assistant', content: messageContentEl.textContent });
+                    state.currentAssistantMessage = messageContentEl.textContent;
+                }
+            }
+
+            updateButtonStates();
+            setStatus('Response generation stopped');
+            promptInput.focus();
+        }
+
+        async function regenerateLastResponse() {
+            if (!state.lastUserMessage) return;
+
+            // Remove the last assistant message if it exists
+            if (state.messages.length > 0 && state.messages[state.messages.length - 1].role === 'assistant') {
+                state.messages.pop();
+            }
+
+            // Remove the last assistant message from DOM
+            const messages = messagesContainer.querySelectorAll('.message');
+            if (messages.length > 0) {
+                const lastMessage = messages[messages.length - 1];
+                if (lastMessage.querySelector('.message-role').textContent === 'Assistant') {
+                    lastMessage.remove();
+                }
+            }
+
+            await generateResponse();
+        }
+
+        // Event listeners
+        sendButton.addEventListener('click', sendMessage);
+        stopButton.addEventListener('click', stopGeneration);
+        regenerateButton.addEventListener('click', regenerateLastResponse);
+
+        promptInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Initialize
+        updateButtonStates();
+        promptInput.focus();
+    </script>
+</body>
+</html>
+```

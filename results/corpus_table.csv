@@ -1,0 +1,90 @@
+id,compatible,failures,functional,A,axe_wcag,axe_all,focus_reasons,model,cond,sample,gen,silent-start,silent-terminal,announcement-overload,focus-lost,stop-unreachable,partial-lost,stale-leak,busy-stuck,focus-lost-lenient,any,any_lenient,n_fail,axe_wcag_clean
+haiku-4-5__C0_plain__s0,True,"['focus-lost', 'silent-start', 'silent-terminal']",[],0.0,[],['region'],['disabled'],haiku-4-5,C0_plain,s0,4.5,True,True,False,True,False,False,False,False,False,True,True,3,True
+haiku-4-5__C0_plain__s1,True,"['focus-lost', 'silent-start', 'silent-terminal']",[],0.0,[],['region'],['disabled'],haiku-4-5,C0_plain,s1,4.5,True,True,False,True,False,False,False,False,False,True,True,3,True
+haiku-4-5__C0_plain__s2,True,"['focus-lost', 'silent-start', 'silent-terminal', 'stale-leak']",[],0.0,[],['region'],"['disabled', 'hidden']",haiku-4-5,C0_plain,s2,4.5,True,True,False,True,False,False,True,False,True,True,True,4,True
+haiku-4-5__C0_plain__s3,True,"['focus-lost', 'silent-start', 'silent-terminal', 'stale-leak']",[],0.0,[],['region'],"['disabled', 'hidden']",haiku-4-5,C0_plain,s3,4.5,True,True,False,True,False,False,True,False,True,True,True,4,True
+haiku-4-5__C0_plain__s4,True,"['focus-lost', 'silent-start', 'silent-terminal', 'stale-leak']",['regenerate-broken'],0.0,[],['region'],"['disabled', 'hidden']",haiku-4-5,C0_plain,s4,4.5,True,True,False,True,False,False,True,False,True,True,True,4,True
+haiku-4-5__C0_plain__s5,True,"['focus-lost', 'silent-start', 'silent-terminal']",[],0.0,[],['region'],"['disabled', 'hidden']",haiku-4-5,C0_plain,s5,4.5,True,True,False,True,False,False,False,False,True,True,True,3,True
+haiku-4-5__C1_accessible__s0,True,"['announcement-overload', 'focus-lost', 'stale-leak']",[],6.02020202020202,[],"['aria-allowed-role', 'region']",['disabled'],haiku-4-5,C1_accessible,s0,4.5,False,False,True,True,False,False,True,False,False,True,True,3,True
+haiku-4-5__C1_accessible__s1,True,"['announcement-overload', 'focus-lost', 'stale-leak']",['regenerate-broken'],6.02020202020202,[],['region'],['disabled'],haiku-4-5,C1_accessible,s1,4.5,False,False,True,True,False,False,True,False,False,True,True,3,True
+haiku-4-5__C1_accessible__s2,True,"['focus-lost', 'partial-lost']",['regenerate-broken'],0.0,[],['region'],['disabled'],haiku-4-5,C1_accessible,s2,4.5,False,False,False,True,False,True,False,False,False,True,True,2,True
+haiku-4-5__C1_accessible__s3,True,"['announcement-overload', 'focus-lost']",[],6.02020202020202,[],[],"['disabled', 'hidden']",haiku-4-5,C1_accessible,s3,4.5,False,False,True,True,False,False,False,False,True,True,True,2,True
+haiku-4-5__C1_accessible__s4,True,"['announcement-overload', 'focus-lost']",[],6.02020202020202,[],['region'],['disabled'],haiku-4-5,C1_accessible,s4,4.5,False,False,True,True,False,False,False,False,False,True,True,2,True
+haiku-4-5__C1_accessible__s5,True,"['focus-lost', 'silent-start', 'stale-leak']",['regenerate-broken'],2.0,[],['region'],['disabled'],haiku-4-5,C1_accessible,s5,4.5,True,False,False,True,False,False,True,False,False,True,True,3,True
+haiku-4-5__C2_lifecycle__s0,True,['focus-lost'],[],0.0,[],['region'],"['disabled', 'hidden']",haiku-4-5,C2_lifecycle,s0,4.5,False,False,False,True,False,False,False,False,True,True,True,1,True
+haiku-4-5__C2_lifecycle__s1,True,"['focus-lost', 'stale-leak']",[],0.0,[],['region'],['disabled'],haiku-4-5,C2_lifecycle,s1,4.5,False,False,False,True,False,False,True,False,False,True,True,2,True
+haiku-4-5__C2_lifecycle__s2,True,"['focus-lost', 'partial-lost']",[],0.0,[],['region'],"['disabled', 'hidden']",haiku-4-5,C2_lifecycle,s2,4.5,False,False,False,True,False,True,False,False,True,True,True,2,True
+haiku-4-5__C2_lifecycle__s3,True,"['announcement-overload', 'focus-lost', 'stale-leak']",[],6.02020202020202,[],['region'],"['disabled', 'hidden']",haiku-4-5,C2_lifecycle,s3,4.5,False,False,True,True,False,False,True,False,True,True,True,3,True
+haiku-4-5__C2_lifecycle__s4,True,"['focus-lost', 'stale-leak']",[],0.0,[],['region'],['disabled'],haiku-4-5,C2_lifecycle,s4,4.5,False,False,False,True,False,False,True,False,False,True,True,2,True
+haiku-4-5__C2_lifecycle__s5,True,['focus-lost'],['regenerate-broken'],0.06060606060606061,[],['region'],['disabled'],haiku-4-5,C2_lifecycle,s5,4.5,False,False,False,True,False,False,False,False,False,True,False,1,True
+haiku-5-5__C0_plain__s0,True,['focus-lost'],[],0.0,[],[],['disabled'],haiku-5-5,C0_plain,s0,5.5,False,False,False,True,False,False,False,False,False,True,False,1,True
+haiku-5-5__C0_plain__s1,True,['focus-lost'],[],0.0,[],['region'],['disabled'],haiku-5-5,C0_plain,s1,5.5,False,False,False,True,False,False,False,False,False,True,False,1,True
+haiku-5-5__C0_plain__s2,True,['focus-lost'],[],0.0,[],['region'],['disabled'],haiku-5-5,C0_plain,s2,5.5,False,False,False,True,False,False,False,False,False,True,False,1,True
+haiku-5-5__C0_plain__s3,True,['focus-lost'],[],0.0,[],[],['disabled'],haiku-5-5,C0_plain,s3,5.5,False,False,False,True,False,False,False,False,False,True,False,1,True
+haiku-5-5__C0_plain__s4,True,['focus-lost'],[],0.0,[],[],['disabled'],haiku-5-5,C0_plain,s4,5.5,False,False,False,True,False,False,False,False,False,True,False,1,True
+haiku-5-5__C0_plain__s5,True,['focus-lost'],[],0.0,[],['region'],['disabled'],haiku-5-5,C0_plain,s5,5.5,False,False,False,True,False,False,False,False,False,True,False,1,True
+haiku-5-5__C1_accessible__s0,True,[],[],0.0,[],['region'],[],haiku-5-5,C1_accessible,s0,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+haiku-5-5__C1_accessible__s1,True,[],[],0.0,[],[],[],haiku-5-5,C1_accessible,s1,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+haiku-5-5__C1_accessible__s2,True,[],[],0.0,[],[],[],haiku-5-5,C1_accessible,s2,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+haiku-5-5__C1_accessible__s3,True,[],[],0.0,[],[],[],haiku-5-5,C1_accessible,s3,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+haiku-5-5__C1_accessible__s4,True,[],[],0.0,[],[],[],haiku-5-5,C1_accessible,s4,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+haiku-5-5__C1_accessible__s5,True,[],[],0.0,[],[],[],haiku-5-5,C1_accessible,s5,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+haiku-5-5__C2_lifecycle__s0,True,[],[],0.0,[],[],[],haiku-5-5,C2_lifecycle,s0,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+haiku-5-5__C2_lifecycle__s1,True,[],[],0.0,[],[],[],haiku-5-5,C2_lifecycle,s1,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+haiku-5-5__C2_lifecycle__s2,True,[],[],0.0,[],[],[],haiku-5-5,C2_lifecycle,s2,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+haiku-5-5__C2_lifecycle__s3,True,[],[],0.0,[],[],[],haiku-5-5,C2_lifecycle,s3,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+haiku-5-5__C2_lifecycle__s4,True,[],[],0.0,[],[],[],haiku-5-5,C2_lifecycle,s4,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+haiku-5-5__C2_lifecycle__s5,True,[],[],0.0,[],['landmark-unique'],[],haiku-5-5,C2_lifecycle,s5,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+opus-4-5__C0_plain__s0,True,"['focus-lost', 'silent-start', 'silent-terminal', 'stale-leak']",[],0.0,[],['region'],['disabled'],opus-4-5,C0_plain,s0,4.5,True,True,False,True,False,False,True,False,False,True,True,4,True
+opus-4-5__C0_plain__s1,True,"['focus-lost', 'silent-start', 'silent-terminal', 'stale-leak']",[],0.0,[],['region'],['disabled'],opus-4-5,C0_plain,s1,4.5,True,True,False,True,False,False,True,False,False,True,True,4,True
+opus-4-5__C0_plain__s2,True,"['focus-lost', 'silent-start', 'silent-terminal']",[],0.0,[],['region'],['disabled'],opus-4-5,C0_plain,s2,4.5,True,True,False,True,False,False,False,False,False,True,True,3,True
+opus-4-5__C0_plain__s3,True,"['focus-lost', 'silent-start', 'silent-terminal']",[],0.0,[],['region'],['disabled'],opus-4-5,C0_plain,s3,4.5,True,True,False,True,False,False,False,False,False,True,True,3,True
+opus-4-5__C0_plain__s4,True,"['focus-lost', 'silent-start', 'silent-terminal', 'stale-leak']",[],0.0,[],['region'],['disabled'],opus-4-5,C0_plain,s4,4.5,True,True,False,True,False,False,True,False,False,True,True,4,True
+opus-4-5__C0_plain__s5,True,"['focus-lost', 'silent-start', 'silent-terminal', 'stale-leak']",[],0.0,[],['region'],['disabled'],opus-4-5,C0_plain,s5,4.5,True,True,False,True,False,False,True,False,False,True,True,4,True
+opus-4-5__C1_accessible__s1,True,"['announcement-overload', 'focus-lost', 'stale-leak']",[],6.02020202020202,[],['aria-allowed-role'],['disabled'],opus-4-5,C1_accessible,s1,4.5,False,False,True,True,False,False,True,False,False,True,True,3,True
+opus-4-5__C1_accessible__s2,True,"['announcement-overload', 'focus-lost', 'stale-leak']",[],6.02020202020202,[],['landmark-banner-is-top-level'],['disabled'],opus-4-5,C1_accessible,s2,4.5,False,False,True,True,False,False,True,False,False,True,True,3,True
+opus-4-5__C1_accessible__s3,True,"['announcement-overload', 'focus-lost']",[],5.96969696969697,[],"['landmark-banner-is-top-level', 'landmark-contentinfo-is-top-level']",['disabled'],opus-4-5,C1_accessible,s3,4.5,False,False,True,True,False,False,False,False,False,True,True,2,True
+opus-4-5__C1_accessible__s4,True,"['announcement-overload', 'focus-lost', 'stale-leak']",[],6.02020202020202,[],['landmark-banner-is-top-level'],['disabled'],opus-4-5,C1_accessible,s4,4.5,False,False,True,True,False,False,True,False,False,True,True,3,True
+opus-4-5__C1_accessible__s5,True,"['announcement-overload', 'focus-lost', 'stale-leak']",[],6.02020202020202,[],['landmark-banner-is-top-level'],['disabled'],opus-4-5,C1_accessible,s5,4.5,False,False,True,True,False,False,True,False,False,True,True,3,True
+opus-4-5__C2_lifecycle__s0,True,['focus-lost'],[],0.0,[],['aria-allowed-role'],['disabled'],opus-4-5,C2_lifecycle,s0,4.5,False,False,False,True,False,False,False,False,False,True,False,1,True
+opus-4-5__C2_lifecycle__s1,True,['focus-lost'],[],0.0,[],['aria-allowed-role'],['disabled'],opus-4-5,C2_lifecycle,s1,4.5,False,False,False,True,False,False,False,False,False,True,False,1,True
+opus-4-5__C2_lifecycle__s2,True,['focus-lost'],[],0.0,[],['aria-allowed-role'],['disabled'],opus-4-5,C2_lifecycle,s2,4.5,False,False,False,True,False,False,False,False,False,True,False,1,True
+opus-4-5__C2_lifecycle__s3,True,['focus-lost'],[],0.0,[],['aria-allowed-role'],['disabled'],opus-4-5,C2_lifecycle,s3,4.5,False,False,False,True,False,False,False,False,False,True,False,1,True
+opus-4-5__C2_lifecycle__s4,True,['focus-lost'],[],0.0,[],"['aria-allowed-role', 'region']",['disabled'],opus-4-5,C2_lifecycle,s4,4.5,False,False,False,True,False,False,False,False,False,True,False,1,True
+opus-4-5__C2_lifecycle__s5,True,['focus-lost'],[],0.0,[],['aria-allowed-role'],['disabled'],opus-4-5,C2_lifecycle,s5,4.5,False,False,False,True,False,False,False,False,False,True,False,1,True
+opus-5-5__C0_plain__s0,True,"['announcement-overload', 'focus-lost']",[],6.02020202020202,[],['region'],['disabled'],opus-5-5,C0_plain,s0,5.5,False,False,True,True,False,False,False,False,False,True,True,2,True
+opus-5-5__C0_plain__s1,True,['focus-lost'],[],0.0,[],[],['disabled'],opus-5-5,C0_plain,s1,5.5,False,False,False,True,False,False,False,False,False,True,False,1,True
+opus-5-5__C0_plain__s2,True,['focus-lost'],[],0.0,[],[],['disabled'],opus-5-5,C0_plain,s2,5.5,False,False,False,True,False,False,False,False,False,True,False,1,True
+opus-5-5__C0_plain__s3,True,"['announcement-overload', 'focus-lost']",[],7.02020202020202,[],[],['disabled'],opus-5-5,C0_plain,s3,5.5,False,False,True,True,False,False,False,False,False,True,True,2,True
+opus-5-5__C0_plain__s4,True,"['announcement-overload', 'focus-lost']",[],6.02020202020202,[],[],['disabled'],opus-5-5,C0_plain,s4,5.5,False,False,True,True,False,False,False,False,False,True,True,2,True
+opus-5-5__C0_plain__s5,True,"['announcement-overload', 'focus-lost']",[],6.96969696969697,[],['region'],['disabled'],opus-5-5,C0_plain,s5,5.5,False,False,True,True,False,False,False,False,False,True,True,2,True
+opus-5-5__C1_accessible__s0,True,[],[],0.0,[],[],[],opus-5-5,C1_accessible,s0,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+opus-5-5__C1_accessible__s1,True,[],[],0.0,[],[],[],opus-5-5,C1_accessible,s1,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+opus-5-5__C1_accessible__s2,True,[],[],1.0,[],[],[],opus-5-5,C1_accessible,s2,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+opus-5-5__C1_accessible__s3,True,[],[],0.0,[],[],[],opus-5-5,C1_accessible,s3,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+opus-5-5__C1_accessible__s4,True,[],[],1.0,[],[],[],opus-5-5,C1_accessible,s4,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+opus-5-5__C1_accessible__s5,True,[],[],0.0,[],[],[],opus-5-5,C1_accessible,s5,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+opus-5-5__C2_lifecycle__s0,True,[],[],0.0,[],['landmark-unique'],[],opus-5-5,C2_lifecycle,s0,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+opus-5-5__C2_lifecycle__s1,True,[],[],0.0,[],[],[],opus-5-5,C2_lifecycle,s1,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+opus-5-5__C2_lifecycle__s2,True,[],[],0.0,[],[],[],opus-5-5,C2_lifecycle,s2,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+opus-5-5__C2_lifecycle__s3,True,[],[],0.0,[],[],[],opus-5-5,C2_lifecycle,s3,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+opus-5-5__C2_lifecycle__s4,True,[],[],0.0,[],[],[],opus-5-5,C2_lifecycle,s4,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+opus-5-5__C2_lifecycle__s5,True,[],[],0.0,[],['landmark-unique'],[],opus-5-5,C2_lifecycle,s5,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+sonnet-5-5__C0_plain__s0,True,['focus-lost'],[],0.0,[],[],['disabled'],sonnet-5-5,C0_plain,s0,5.5,False,False,False,True,False,False,False,False,False,True,False,1,True
+sonnet-5-5__C0_plain__s1,True,['focus-lost'],[],0.0,[],['region'],['disabled'],sonnet-5-5,C0_plain,s1,5.5,False,False,False,True,False,False,False,False,False,True,False,1,True
+sonnet-5-5__C0_plain__s2,True,['focus-lost'],[],0.0,[],[],['disabled'],sonnet-5-5,C0_plain,s2,5.5,False,False,False,True,False,False,False,False,False,True,False,1,True
+sonnet-5-5__C0_plain__s3,True,['focus-lost'],[],0.0,[],['region'],['disabled'],sonnet-5-5,C0_plain,s3,5.5,False,False,False,True,False,False,False,False,False,True,False,1,True
+sonnet-5-5__C0_plain__s4,True,['focus-lost'],[],0.0,[],['region'],['disabled'],sonnet-5-5,C0_plain,s4,5.5,False,False,False,True,False,False,False,False,False,True,False,1,True
+sonnet-5-5__C0_plain__s5,True,['focus-lost'],[],0.0,[],[],['disabled'],sonnet-5-5,C0_plain,s5,5.5,False,False,False,True,False,False,False,False,False,True,False,1,True
+sonnet-5-5__C1_accessible__s0,True,[],[],0.0,[],[],[],sonnet-5-5,C1_accessible,s0,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+sonnet-5-5__C1_accessible__s1,True,[],[],0.0,[],[],[],sonnet-5-5,C1_accessible,s1,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+sonnet-5-5__C1_accessible__s2,True,[],[],0.0,[],[],[],sonnet-5-5,C1_accessible,s2,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+sonnet-5-5__C1_accessible__s3,True,[],[],0.0,[],[],[],sonnet-5-5,C1_accessible,s3,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+sonnet-5-5__C1_accessible__s4,True,[],[],0.0,[],[],[],sonnet-5-5,C1_accessible,s4,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+sonnet-5-5__C1_accessible__s5,True,[],[],0.0,[],[],[],sonnet-5-5,C1_accessible,s5,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+sonnet-5-5__C2_lifecycle__s0,True,[],[],0.0,[],[],[],sonnet-5-5,C2_lifecycle,s0,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+sonnet-5-5__C2_lifecycle__s1,True,[],[],0.0,[],[],[],sonnet-5-5,C2_lifecycle,s1,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+sonnet-5-5__C2_lifecycle__s2,True,[],[],0.0,[],[],[],sonnet-5-5,C2_lifecycle,s2,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+sonnet-5-5__C2_lifecycle__s3,True,[],[],0.0,[],[],[],sonnet-5-5,C2_lifecycle,s3,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+sonnet-5-5__C2_lifecycle__s4,True,[],[],0.0,[],['region'],[],sonnet-5-5,C2_lifecycle,s4,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True
+sonnet-5-5__C2_lifecycle__s5,True,[],[],0.0,[],[],[],sonnet-5-5,C2_lifecycle,s5,5.5,False,False,False,False,False,False,False,False,False,False,False,0,True

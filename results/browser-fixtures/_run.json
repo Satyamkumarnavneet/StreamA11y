@@ -1,0 +1,27 @@
+{
+ "started": "2026-11-10T05:05:28.093Z",
+ "playwright": "1.65.0",
+ "inDir": "fixtures/variants",
+ "files": 11,
+ "engines": {
+  "chromium": {
+   "version": "158.0.8127.18",
+   "done": 11,
+   "incompatible": 0,
+   "errors": 0
+  },
+  "firefox": {
+   "version": "159.0",
+   "done": 11,
+   "incompatible": 0,
+   "errors": 0
+  },
+  "webkit": {
+   "version": "27.2",
+   "done": 11,
+   "incompatible": 0,
+   "errors": 0
+  }
+ },
+ "finished": "2026-11-10T05:05:33.994Z"
+}

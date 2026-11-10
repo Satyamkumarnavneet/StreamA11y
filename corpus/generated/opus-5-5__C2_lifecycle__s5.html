@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat assistant</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --muted: #4a4a4a;
+    --border: #6b6b6b;
+    --primary: #0b57d0;
+    --primary-fg: #ffffff;
+    --user-bg: #e8f0fe;
+    --assistant-bg: #f3f3f3;
+    --error: #b3261e;
+    --error-bg: #fdecea;
+    --focus: #0b57d0;
+    --disabled-bg: #e6e6e6;
+    --disabled-fg: #4f4f4f;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { font-size: 100%; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    color: var(--fg);
+    background: var(--bg);
+  }
+  .skip-link {
+    position: absolute;
+    left: 0.5rem;
+    top: -10rem;
+    background: var(--fg);
+    color: #fff;
+    padding: 0.5rem 1rem;
+    z-index: 10;
+    border-radius: 4px;
+  }
+  .skip-link:focus { top: 0.5rem; }
+  .visually-hidden {
+    position: absolute !important;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0);
+    white-space: nowrap; border: 0;
+  }
+  header, main {
+    max-width: 50rem;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+  header h1 { font-size: 1.5rem; margin: 1rem 0 0.5rem; }
+  h2 { font-size: 1.125rem; margin: 1rem 0 0.5rem; }
+
+  #transcript {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.75rem;
+    max-height: 60vh;
+    min-height: 10rem;
+    overflow-y: auto;
+    background: var(--bg);
+  }
+  #empty-note { color: var(--muted); margin: 0; }
+  #messages { list-style: none; margin: 0; padding: 0; }
+  .msg {
+    margin: 0 0 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid transparent;
+  }
+  .msg:last-child { margin-bottom: 0; }
+  .msg.user { background: var(--user-bg); border-color: #a8c1ef; }
+  .msg.assistant { background: var(--assistant-bg); border-color: #c9c9c9; }
+  .msg .who { font-weight: 700; margin: 0 0 0.25rem; }
+  .msg .body {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    margin: 0;
+  }
+  .msg .note {
+    margin: 0.25rem 0 0;
+    font-style: italic;
+    color: var(--muted);
+  }
+  .msg .note:empty { display: none; }
+  .msg .note.error {
+    font-style: normal;
+    color: var(--error);
+    font-weight: 600;
+  }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    min-height: 2.75rem;
+  }
+  .status-bar.is-error { background: var(--error-bg); border-color: var(--error); color: var(--error); }
+  #status { margin: 0; font-weight: 600; }
+  .indicator { display: none; gap: 0.25rem; }
+  .status-bar.is-busy .indicator { display: inline-flex; }
+  .indicator span {
+    width: 0.5rem; height: 0.5rem;
+    border-radius: 50%;
+    background: var(--primary);
+    animation: pulse 1.2s infinite ease-in-out;
+  }
+  .indicator span:nth-child(2) { animation-delay: 0.2s; }
+  .indicator span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pulse {
+    0%, 80%, 100% { opacity: 0.25; }
+    40% { opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .indicator span { animation: none; opacity: 1; }
+  }
+
+  form { margin: 0 0 2rem; }
+  label { display: block; font-weight: 600; margin-bottom: 0.25rem; }
+  #prompt {
+    display: block;
+    width: 100%;
+    min-height: 5rem;
+    padding: 0.5rem;
+    font: inherit;
+    color: var(--fg);
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    resize: vertical;
+  }
+  #prompt-help { color: var(--muted); margin: 0.25rem 0 0.75rem; font-size: 0.9375rem; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  button {
+    font: inherit;
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    border: 2px solid var(--primary);
+    background: #fff;
+    color: var(--primary);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button.primary { background: var(--primary); color: var(--primary-fg); }
+  button[aria-disabled="true"] {
+    background: var(--disabled-bg);
+    color: var(--disabled-fg);
+    border-color: #8a8a8a;
+    cursor: not-allowed;
+  }
+  :focus { outline: none; }
+  :focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+  #prompt:focus-visible, #transcript:focus-visible { outline-offset: 1px; }
+
+  @media (forced-colors: active) {
+    button, #prompt, #transcript, .msg, .status-bar { border: 1px solid CanvasText; }
+    button[aria-disabled="true"] { color: GrayText; border-color: GrayText; }
+    .indicator span { background: CanvasText; }
+    :focus-visible { outline: 3px solid Highlight; }
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#prompt">Skip to message box</a>
+
+<header>
+  <h1>Chat assistant</h1>
+</header>
+
+<main>
+  <section aria-labelledby="conv-heading">
+    <h2 id="conv-heading">Conversation</h2>
+    <div id="transcript" tabindex="0" role="region" aria-labelledby="conv-heading">
+      <p id="empty-note">No messages yet. Type a message below to start.</p>
+      <ol id="messages"></ol>
+    </div>
+  </section>
+
+  <div class="status-bar" id="status-bar">
+    <span class="indicator" aria-hidden="true"><span></span><span></span><span></span></span>
+    <p id="status" role="status" aria-live="polite" aria-atomic="true">Ready.</p>
+  </div>
+
+  <section aria-labelledby="compose-heading">
+    <h2 id="compose-heading" class="visually-hidden">Write a message</h2>
+    <form id="composer" novalidate>
+      <label for="prompt">Message</label>
+      <textarea id="prompt" name="prompt" rows="3" aria-describedby="prompt-help"></textarea>
+      <p id="prompt-help">Press Enter to send. Press Shift+Enter for a new line. Press Escape to stop an answer that is being generated.</p>
+      <div class="buttons">
+        <button type="submit" id="send" class="primary" aria-disabled="false">Send</button>
+        <button type="button" id="stop" aria-disabled="true">Stop</button>
+        <button type="button" id="regenerate" aria-disabled="true">Regenerate</button>
+      </div>
+    </form>
+  </section>
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  var form = document.getElementById('composer');
+  var promptEl = document.getElementById('prompt');
+  var sendBtn = document.getElementById('send');
+  var stopBtn = document.getElementById('stop');
+  var regenBtn = document.getElementById('regenerate');
+  var transcript = document.getElementById('transcript');
+  var list = document.getElementById('messages');
+  var emptyNote = document.getElementById('empty-note');
+  var statusEl = document.getElementById('status');
+  var statusBar = document.getElementById('status-bar');
+
+  // Conversation entries: { role, content, el, bodyText, noteEl }
+  var entries = [];
+  // The generation currently streaming, or null.
+  var current = null;
+  var generationCounter = 0;
+  var statusTimer = null;
+
+  /* ---------- Status (live region) ---------- */
+  function setStatus(text, mode) {
+    statusBar.classList.toggle('is-busy', mode === 'busy');
+    statusBar.classList.toggle('is-error', mode === 'error');
+    // Clear first so an identical message is re-announced.
+    if (statusTimer) clearTimeout(statusTimer);
+    statusEl.textContent = '';
+    statusTimer = setTimeout(function () {
+      statusEl.textContent = text;
+      statusTimer = null;
+    }, 60);
+  }
+
+  /* ---------- Controls (aria-disabled keeps focus where it is) ---------- */
+  function setDisabled(btn, disabled) {
+    btn.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+  }
+  function isDisabled(btn) {
+    return btn.getAttribute('aria-disabled') === 'true';
+  }
+  function hasUserMessage() {
+    for (var i = 0; i < entries.length; i++) {
+      if (entries[i].role === 'user') return true;
+    }
+    return false;
+  }
+  function updateControls() {
+    var streaming = current !== null;
+    setDisabled(sendBtn, streaming);
+    setDisabled(stopBtn, !streaming);
+    setDisabled(regenBtn, streaming || !hasUserMessage());
+    emptyNote.hidden = entries.length > 0;
+  }
+
+  /* ---------- Transcript rendering ---------- */
+  function isNearBottom() {
+    return transcript.scrollHeight - transcript.scrollTop - transcript.clientHeight < 48;
+  }
+  function scrollToBottom() {
+    transcript.scrollTop = transcript.scrollHeight;
+  }
+
+  function addEntry(role, content) {
+    var stick = isNearBottom();
+    var li = document.createElement('li');
+    li.className = 'msg ' + role;
+
+    var who = document.createElement('p');
+    who.className = 'who';
+    who.textContent = role === 'user' ? 'You' : 'Assistant';
+
+    var body = document.createElement('p');
+    body.className = 'body';
+    var textNode = document.createTextNode(content);
+    body.appendChild(textNode);
+
+    var note = document.createElement('p');
+    note.className = 'note';
+
+    li.appendChild(who);
+    li.appendChild(body);
+    li.appendChild(note);
+    list.appendChild(li);
+
+    var entry = { role: role, content: content, el: li, bodyText: textNode, noteEl: note };
+    entries.push(entry);
+    updateControls();
+    if (stick || role === 'user') scrollToBottom();
+    return entry;
+  }
+
+  function removeEntriesAfter(index) {
+    while (entries.length > index + 1) {
+      var e = entries.pop();
+      if (e.el && e.el.parentNode) e.el.parentNode.removeChild(e.el);
+    }
+  }
+
+  function historyForApi() {
+    var out = [];
+    for (var i = 0; i < entries.length; i++) {
+      var e = entries[i];
+      if (e.role === 'assistant' && e.content === '') continue;
+      out.push({ role: e.role, content: e.content });
+    }
+    return out;
+  }
+
+  /* ---------- Streaming ---------- */
+  function endGeneration(gen, outcome, error) {
+    if (!gen || gen.ended) return;
+    gen.ended = true;
+    if (current === gen) current = null;
+
+    var entry = gen.entry;
+    entry.el.removeAttribute('aria-busy');
+
+    if (outcome === 'done') {
+      if (entry.content === '') entry.noteEl.textContent = 'The assistant returned an empty answer.';
+      setStatus('Assistant finished answering. The answer is the last message in the conversation.', 'idle');
+    } else if (outcome === 'stopped') {
+      entry.noteEl.textContent = entry.content === ''
+        ? 'Stopped before any text was generated.'
+        : 'Stopped. Partial answer shown.';
+      setStatus('Generation stopped. The partial answer was kept.', 'idle');
+    } else {
+      var msg = (error && error.message) ? error.message : (error ? String(error) : 'Unknown error');
+      entry.noteEl.className = 'note error';
+      entry.noteEl.textContent = 'Error: ' + msg;
+      setStatus('Error: the answer could not be completed. ' + msg + ' You can use Regenerate to try again.', 'error');
+    }
+    updateControls();
+  }
+
+  function startGeneration(isRegenerate) {
+    var history = historyForApi();
+    var entry = addEntry('assistant', '');
+    entry.el.setAttribute('aria-busy', 'true');
+
+    var gen = { id: ++generationCounter, entry: entry, handle: null, ended: false };
+    current = gen;
+    updateControls();
+    setStatus(isRegenerate ? 'Assistant is generating a new answer…' : 'Assistant is generating an answer…', 'busy');
+
+    function live() { return current === gen && !gen.ended; }
+
+    var callbacks = {
+      onToken: function (text) {
+        if (!live()) return; // ignore late chunks from stopped/finished streams
+        if (text == null) return;
+        text = String(text);
+        if (!text) return;
+        var stick = isNearBottom();
+        entry.content += text;
+        entry.bodyText.appendData(text);
+        if (stick) scrollToBottom();
+      },
+      onDone: function () {
+        if (!live()) return;
+        endGeneration(gen, 'done');
+      },
+      onError: function (err) {
+        if (!live()) return;
+        endGeneration(gen, 'error', err);
+      }
+    };
+
+    try {
+      if (!window.ChatSDK || typeof window.ChatSDK.streamChat !== 'function') {
+        throw new Error('The chat service is not available.');
+      }
+      var handle = window.ChatSDK.streamChat(history, callbacks);
+      gen.handle = handle || null;
+    } catch (err) {
+      if (live()) endGeneration(gen, 'error', err);
+    }
+  }
+
+  function stopGeneration() {
+    var gen = current;
+    if (!gen) return;
+    // Mark ended first so any in-flight chunk is ignored.
+    endGeneration(gen, 'stopped');
+    try {
+      if (gen.handle && typeof gen.handle.abort === 'function') gen.handle.abort();
+    } catch (e) { /* stream is already detached from the transcript */ }
+  }
+
+  /* ---------- Actions ---------- */
+  function send() {
+    if (current) {
+      setStatus('An answer is still being generated. Wait for it to finish or press Stop first.', 'busy');
+      return;
+    }
+    var text = promptEl.value;
+    if (!text.trim()) {
+      setStatus('Type a message before sending.', 'idle');
+      return;
+    }
+    addEntry('user', text);
+    promptEl.value = '';
+    startGeneration(false);
+  }
+
+  function regenerate() {
+    if (current) {
+      setStatus('An answer is still being generated. Press Stop before regenerating.', 'busy');
+      return;
+    }
+    var lastUser = -1;
+    for (var i = entries.length - 1; i >= 0; i--) {
+      if (entries[i].role === 'user') { lastUser = i; break; }
+    }
+    if (lastUser === -1) {
+      setStatus('There is no message to regenerate an answer for.', 'idle');
+      return;
+    }
+    removeEntriesAfter(lastUser);
+    startGeneration(true);
+  }
+
+  /* ---------- Events ---------- */
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    send();
+  });
+
+  stopBtn.addEventListener('click', function () {
+    if (isDisabled(stopBtn)) return;
+    stopGeneration();
+  });
+
+  regenBtn.addEventListener('click', function () {
+    if (isDisabled(regenBtn)) {
+      if (current) setStatus('An answer is still being generated. Press Stop before regenerating.', 'busy');
+      return;
+    }
+    regenerate();
+  });
+
+  promptEl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey && !e.isComposing) {
+      e.preventDefault();
+      send();
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && current) {
+      e.preventDefault();
+      stopGeneration();
+    }
+  });
+
+  updateControls();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat Assistant</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --panel: #ffffff; --border: #dcdfe4; --text: #1d2129;
+    --muted: #6b7280; --user: #2563eb; --user-text: #fff; --asst: #eef0f4;
+    --ok: #15803d; --warn: #b45309; --err: #b91c1c; --busy: #2563eb;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text);
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .app {
+    width: 100%; max-width: 820px; height: 100%;
+    display: flex; flex-direction: column; background: var(--panel);
+    border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+  }
+  header {
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  header h1 { font-size: 16px; margin: 0; }
+  #status {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 600; padding: 4px 10px;
+    border-radius: 999px; background: var(--asst); color: var(--muted);
+  }
+  #status .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  #status[data-state="generating"] { color: var(--busy); background: #e3ecfd; }
+  #status[data-state="generating"] .dot { animation: pulse 1s infinite ease-in-out; }
+  #status[data-state="done"] { color: var(--ok); background: #e0f4e6; }
+  #status[data-state="stopped"] { color: var(--warn); background: #fdf0dc; }
+  #status[data-state="error"] { color: var(--err); background: #fde4e4; }
+  @keyframes pulse { 0%,100% { opacity: .25; } 50% { opacity: 1; } }
+
+  #log { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .empty { margin: auto; color: var(--muted); text-align: center; }
+  .msg { display: flex; flex-direction: column; max-width: 85%; }
+  .msg.user { align-self: flex-end; align-items: flex-end; }
+  .msg.assistant { align-self: flex-start; align-items: flex-start; }
+  .role { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 3px; }
+  .bubble {
+    padding: 9px 13px; border-radius: 14px; white-space: pre-wrap; word-wrap: break-word;
+    overflow-wrap: anywhere; min-height: 1.5em;
+  }
+  .user .bubble { background: var(--user); color: var(--user-text); border-bottom-right-radius: 4px; }
+  .assistant .bubble { background: var(--asst); border-bottom-left-radius: 4px; }
+  .assistant.generating .bubble::after {
+    content: ""; display: inline-block; width: 7px; height: 1em; margin-left: 2px;
+    vertical-align: text-bottom; background: var(--busy); animation: pulse 1s infinite;
+  }
+  .note { font-size: 12px; margin-top: 4px; font-weight: 600; }
+  .note.stopped { color: var(--warn); }
+  .note.error { color: var(--err); }
+  .note.done { color: var(--ok); }
+  .note.generating { color: var(--busy); }
+  .assistant.error .bubble { border: 1px solid #f3b4b4; }
+  .assistant.stopped .bubble { border: 1px dashed #e5c07b; }
+  .placeholder { color: var(--muted); font-style: italic; }
+
+  footer { border-top: 1px solid var(--border); padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .row { display: flex; gap: 8px; align-items: flex-end; }
+  textarea {
+    flex: 1; resize: none; font: inherit; padding: 9px 12px; border: 1px solid var(--border);
+    border-radius: 10px; min-height: 42px; max-height: 160px; background: #fff; color: inherit;
+  }
+  textarea:focus { outline: 2px solid #93b4f5; border-color: var(--user); }
+  button {
+    font: inherit; font-weight: 600; padding: 9px 16px; border-radius: 10px; cursor: pointer;
+    border: 1px solid var(--border); background: #fff; color: var(--text);
+  }
+  button:hover:not(:disabled) { background: #f0f2f5; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  #send { background: var(--user); color: #fff; border-color: var(--user); }
+  #send:hover:not(:disabled) { background: #1d4fc4; }
+  #stop { color: var(--err); border-color: #efb4b4; }
+  .actions { display: flex; gap: 8px; align-items: center; }
+  .hint { margin-left: auto; font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Chat Assistant</h1>
+    <div id="status" data-state="idle" role="status" aria-live="polite">
+      <span class="dot"></span><span id="status-text">Ready</span>
+    </div>
+  </header>
+
+  <div id="log" aria-live="off"></div>
+
+  <footer>
+    <div class="row">
+      <textarea id="prompt" rows="1" placeholder="Type a message…" aria-label="Message"></textarea>
+      <button id="send" type="button">Send</button>
+    </div>
+    <div class="actions">
+      <button id="stop" type="button" disabled>Stop</button>
+      <button id="regenerate" type="button" disabled>Regenerate</button>
+      <span class="hint">Enter to send · Shift+Enter for new line</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var logEl = document.getElementById('log');
+  var promptEl = document.getElementById('prompt');
+  var sendBtn = document.getElementById('send');
+  var stopBtn = document.getElementById('stop');
+  var regenBtn = document.getElementById('regenerate');
+  var statusEl = document.getElementById('status');
+  var statusText = document.getElementById('status-text');
+
+  var history = [];
+  var activeId = 0;
+  var nextId = 1;
+  var activeHandle = null;
+  var activeEntry = null;
+
+  var STATUS_LABELS = {
+    idle: 'Ready',
+    generating: 'Generating…',
+    done: 'Finished',
+    stopped: 'Stopped',
+    error: 'Error'
+  };
+
+  function setStatus(state, detail) {
+    statusEl.setAttribute('data-state', state);
+    statusText.textContent = detail || STATUS_LABELS[state];
+  }
+
+  function isStreaming() { return activeId !== 0; }
+
+  // Set a button's disabled state; if it currently has focus and is about to
+  // be disabled, move focus to the message box first so focus is never lost.
+  function setDisabled(btn, value) {
+    if (value && document.activeElement === btn) {
+      promptEl.focus();
+    }
+    btn.disabled = value;
+  }
+
+  function updateControls() {
+    var streaming = isStreaming();
+    var hasUser = history.some(function (m) { return m.role === 'user'; });
+    setDisabled(sendBtn, streaming);
+    setDisabled(stopBtn, !streaming);
+    setDisabled(regenBtn, !hasUser);
+  }
+
+  function nearBottom() {
+    return logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 80;
+  }
+  function scrollDown() { logEl.scrollTop = logEl.scrollHeight; }
+
+  function noteText(entry) {
+    switch (entry.state) {
+      case 'generating': return 'Generating…';
+      case 'done': return 'Finished';
+      case 'stopped': return 'Stopped — partial answer kept';
+      case 'error': return 'Error: ' + (entry.errorText || 'the response failed') +
+        (entry.content ? ' (partial answer kept)' : '');
+      default: return '';
+    }
+  }
+
+  function paintAssistant(entry) {
+    entry.el.className = 'msg assistant ' + entry.state;
+    if (entry.content) {
+      entry.bubble.classList.remove('placeholder');
+      entry.bubble.textContent = entry.content;
+    } else {
+      var txt = entry.state === 'generating' ? '' :
+                entry.state === 'stopped' ? '(stopped before any text arrived)' :
+                entry.state === 'error' ? '(no answer received)' : '(empty answer)';
+      entry.bubble.textContent = txt;
+      entry.bubble.classList.toggle('placeholder', !!txt);
+    }
+    entry.note.className = 'note ' + entry.state;
+    entry.note.textContent = noteText(entry);
+  }
+
+  function buildEntryDom(entry) {
+    var wrap = document.createElement('div');
+    wrap.className = 'msg ' + entry.role;
+    var role = document.createElement('div');
+    role.className = 'role';
+    role.textContent = entry.role === 'user' ? 'You' : 'Assistant';
+    var bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    wrap.appendChild(role);
+    wrap.appendChild(bubble);
+    entry.el = wrap;
+    entry.bubble = bubble;
+    if (entry.role === 'assistant') {
+      var note = document.createElement('div');
+      note.className = 'note';
+      wrap.appendChild(note);
+      entry.note = note;
+      paintAssistant(entry);
+    } else {
+      bubble.textContent = entry.content;
+    }
+    return wrap;
+  }
+
+  function renderAll() {
+    logEl.textContent = '';
+    if (!history.length) {
+      var e = document.createElement('div');
+      e.className = 'empty';
+      e.textContent = 'No messages yet. Say hello to get started.';
+      logEl.appendChild(e);
+    } else {
+      history.forEach(function (m) { logEl.appendChild(buildEntryDom(m)); });
+    }
+    scrollDown();
+  }
+
+  function appendEntry(entry) {
+    if (!history.length || logEl.querySelector('.empty')) logEl.textContent = '';
+    history.push(entry);
+    logEl.appendChild(buildEntryDom(entry));
+    scrollDown();
+  }
+
+  function apiMessages(upToExclusive) {
+    return history.slice(0, upToExclusive)
+      .filter(function (m) { return m.content && m.content.length; })
+      .map(function (m) { return { role: m.role, content: m.content }; });
+  }
+
+  function detachActive() {
+    var h = activeHandle;
+    activeId = 0;
+    activeHandle = null;
+    activeEntry = null;
+    if (h && typeof h.abort === 'function') {
+      try { h.abort(); } catch (e) { /* ignore */ }
+    }
+  }
+
+  function startStream() {
+    var messages = apiMessages(history.length);
+    var entry = { role: 'assistant', content: '', state: 'generating', errorText: '' };
+    appendEntry(entry);
+
+    var id = nextId++;
+    activeId = id;
+    activeEntry = entry;
+    activeHandle = null;
+    setStatus('generating');
+    updateControls();
+
+    function finish(state, errText) {
+      if (activeId !== id) return;
+      activeId = 0; activeHandle = null; activeEntry = null;
+      entry.state = state;
+      entry.errorText = errText || '';
+      var stick = nearBottom();
+      paintAssistant(entry);
+      if (stick) scrollDown();
+      if (state === 'error') setStatus('error', 'Error: ' + (errText || 'the response failed'));
+      else setStatus(state);
+      updateControls();
+    }
+
+    var handle;
+    try {
+      if (!window.ChatSDK || typeof window.ChatSDK.streamChat !== 'function') {
+        throw new Error('Chat service is not available');
+      }
+      handle = window.ChatSDK.streamChat(messages, {
+        onToken: function (text) {
+          if (activeId !== id) return;
+          if (typeof text !== 'string' || !text) return;
+          entry.content += text;
+          var stick = nearBottom();
+          entry.bubble.classList.remove('placeholder');
+          entry.bubble.textContent = entry.content;
+          if (stick) scrollDown();
+        },
+        onDone: function () { finish('done'); },
+        onError: function (err) {
+          var msg = (err && (err.message || String(err))) || 'the response failed';
+          finish('error', msg);
+        }
+      });
+    } catch (err) {
+      finish('error', (err && err.message) || 'could not start the request');
+      return;
+    }
+    if (activeId === id) activeHandle = handle;
+  }
+
+  function send() {
+    if (isStreaming()) return;
+    var text = promptEl.value.trim();
+    if (!text) return;
+    promptEl.value = '';
+    autoSize();
+    appendEntry({ role: 'user', content: text });
+    startStream();
+    // Focus lives in the message box while generating (never on a disabled control).
+    if (document.activeElement !== promptEl) promptEl.focus();
+  }
+
+  function stop() {
+    if (!isStreaming()) return;
+    var entry = activeEntry;
+    detachActive();
+    if (entry) {
+      entry.state = 'stopped';
+      paintAssistant(entry);
+    }
+    setStatus('stopped');
+    updateControls();
+    if (document.activeElement !== promptEl) promptEl.focus();
+  }
+
+  function regenerate() {
+    var lastUser = -1;
+    for (var i = history.length - 1; i >= 0; i--) {
+      if (history[i].role === 'user') { lastUser = i; break; }
+    }
+    if (lastUser < 0) return;
+    if (isStreaming()) detachActive();
+    history.length = lastUser + 1;
+    renderAll();
+    startStream();
+  }
+
+  function autoSize() {
+    promptEl.style.height = 'auto';
+    promptEl.style.height = Math.min(promptEl.scrollHeight, 160) + 'px';
+  }
+
+  sendBtn.addEventListener('click', send);
+  stopBtn.addEventListener('click', stop);
+  regenBtn.addEventListener('click', regenerate);
+  promptEl.addEventListener('input', autoSize);
+  promptEl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      send();
+    }
+  });
+
+  renderAll();
+  setStatus('idle');
+  updateControls();
+  promptEl.focus();
+})();
+</script>
+</body>
+</html>

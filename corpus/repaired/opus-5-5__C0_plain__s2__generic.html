@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat Assistant</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #f4f5f7;
+    color: #1f2328;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Skip link (visible on focus) */
+  .skip-link {
+    position: absolute;
+    left: 8px;
+    top: -100px;
+    z-index: 10;
+    background: #ffffff;
+    color: #0b5cd5;
+    padding: 8px 12px;
+    border: 2px solid #0b5cd5;
+    border-radius: 8px;
+    text-decoration: underline;
+  }
+  .skip-link:focus { top: 8px; }
+
+  header {
+    padding: 12px 20px;
+    background: #ffffff;
+    border-bottom: 1px solid #d8dbe0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 12px;
+  }
+  header h1 { font-size: 1.05rem; margin: 0; font-weight: 600; }
+
+  /* Status pill — all color pairs meet 4.5:1 */
+  #status {
+    font-size: 0.85rem;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #eef0f3;
+    color: #424a53;
+    border: 1px solid transparent;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  #status.generating { background: #e6f0ff; color: #0a4fb8; }
+  #status.finished   { background: #e7f6ec; color: #116329; }
+  #status.stopped    { background: #fff4e0; color: #6f4400; }
+  #status.error      { background: #ffebe9; color: #a40e26; }
+  #status.generating::before {
+    content: "";
+    display: inline-block;
+    width: 8px; height: 8px;
+    margin-right: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    vertical-align: middle;
+    /* Limited to 5 seconds (WCAG 2.2.2) */
+    animation: pulse 1s ease-in-out 5;
+  }
+  @keyframes pulse { 0%,100% { opacity: .35; } 50% { opacity: 1; } }
+
+  main {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #conversation {
+    flex: 1;
+    min-height: 120px;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  #conversation:focus-visible {
+    outline: 3px solid #0b5cd5;
+    outline-offset: -3px;
+  }
+  .empty {
+    margin: auto;
+    color: #57606a;
+    text-align: center;
+    font-size: 0.95rem;
+  }
+  .msg {
+    max-width: min(760px, 85%);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+  }
+  .msg.user { align-self: flex-end; align-items: flex-end; }
+  .msg.assistant { align-self: flex-start; align-items: flex-start; }
+  .role {
+    font-size: 0.75rem;
+    color: #57606a;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin: 0;
+  }
+  .bubble {
+    padding: 10px 14px;
+    border-radius: 14px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    line-height: 1.5;
+    max-width: 100%;
+  }
+  .msg.user .bubble { background: #0b5cd5; color: #fff; border-bottom-right-radius: 4px; }
+  .msg.assistant .bubble { background: #fff; border: 1px solid #d8dbe0; border-bottom-left-radius: 4px; }
+  /* Static (non-blinking) streaming cursor, hidden from assistive tech */
+  .cursor { color: #0b5cd5; margin-left: 1px; }
+  .bubble.placeholder { color: #57606a; font-style: italic; }
+  .note { font-size: 0.8rem; margin: 0; }
+  .note:empty { display: none; }
+  .note.stopped { color: #6f4400; }
+  .note.error { color: #a40e26; }
+
+  .composer-wrap {
+    background: #fff;
+    border-top: 1px solid #d8dbe0;
+    padding: 12px 20px;
+  }
+  form {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  #prompt {
+    flex: 1;
+    min-width: 0;
+    resize: none;
+    min-height: 44px;
+    max-height: 200px;
+    padding: 10px 12px;
+    font: inherit;
+    line-height: 1.5;
+    color: #1f2328;
+    background: #fff;
+    /* Non-text contrast ≥ 3:1 against white */
+    border: 1px solid #6e7781;
+    border-radius: 10px;
+  }
+  #prompt::placeholder { color: #57606a; opacity: 1; }
+  #prompt:focus-visible,
+  #prompt:focus {
+    outline: 3px solid #0b5cd5;
+    outline-offset: 2px;
+    border-color: #0b5cd5;
+  }
+  button {
+    font: inherit;
+    font-size: 0.9rem;
+    line-height: 1.3;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid #6e7781;
+    background: #fff;
+    color: #1f2328;
+    cursor: pointer;
+    min-height: 44px;
+    min-width: 44px;
+  }
+  button:hover:not(:disabled) { background: #f3f4f6; }
+  button:focus-visible {
+    outline: 3px solid #0b5cd5;
+    outline-offset: 2px;
+  }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  #send { background: #0b5cd5; border-color: #0b5cd5; color: #fff; }
+  #send:hover:not(:disabled) { background: #094bb0; }
+  #stop:not(:disabled) { border-color: #b31d28; color: #a40e26; }
+  .hint {
+    font-size: 0.8rem;
+    color: #57606a;
+    text-align: center;
+    margin: 6px 0 0;
+  }
+  kbd {
+    font-family: inherit;
+    font-size: 0.95em;
+    border: 1px solid #8c959f;
+    border-radius: 4px;
+    padding: 0 4px;
+    background: #f6f8fa;
+    color: #1f2328;
+  }
+  .sr-only {
+    position: absolute !important;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Reflow at narrow widths / high zoom (WCAG 1.4.10) */
+  @media (max-width: 520px) {
+    header, #conversation, .composer-wrap { padding-left: 12px; padding-right: 12px; }
+    form { flex-wrap: wrap; }
+    #prompt { flex: 1 1 100%; }
+    form button { flex: 1 1 auto; }
+    .msg { max-width: 95%; }
+  }
+  /* Short viewports (e.g. 400% zoom): let the page scroll instead of trapping content */
+  @media (max-height: 480px) {
+    html, body { height: auto; }
+    main { min-height: auto; }
+    #conversation { overflow-y: visible; flex: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+
+  @media (forced-colors: active) {
+    button:disabled { opacity: 1; color: GrayText; border-color: GrayText; }
+    #status { border-color: CanvasText; }
+    .msg.assistant .bubble, .msg.user .bubble { border: 1px solid CanvasText; }
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#prompt">Skip to message box</a>
+
+<header>
+  <h1>Chat Assistant</h1>
+  <div id="status-wrap">
+    <span class="sr-only">Status: </span><span id="status">Ready</span>
+  </div>
+</header>
+
+<main>
+  <section id="conversation" aria-labelledby="conversation-heading" tabindex="0">
+    <h2 id="conversation-heading" class="sr-only">Conversation</h2>
+    <p class="empty" id="empty">Start the conversation by typing a message below.</p>
+  </section>
+
+  <div class="composer-wrap">
+    <form id="composer" autocomplete="off" aria-label="Send a message">
+      <label for="prompt" class="sr-only">Message</label>
+      <textarea id="prompt" rows="1" placeholder="Type your message…" aria-describedby="hint"></textarea>
+      <button type="submit" id="send">Send</button>
+      <button type="button" id="stop" disabled>Stop</button>
+      <button type="button" id="regenerate" disabled>Regenerate</button>
+    </form>
+    <p class="hint" id="hint"><kbd>Enter</kbd> to send · <kbd>Shift</kbd>+<kbd>Enter</kbd> for a new line · <kbd>Esc</kbd> to stop generating</p>
+  </div>
+</main>
+
+<!-- Screen reader announcements (status messages, WCAG 4.1.3) -->
+<div id="announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+<div id="alerter" class="sr-only" role="alert" aria-atomic="true"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---- State ----
+  // Each message: { role, content, status } where status for assistant is
+  // 'streaming' | 'finished' | 'stopped' | 'error'
+  var messages = [];
+  var current = null; // active request: { msg, handle, closed }
+  var msgCounter = 0;
+
+  // ---- Elements ----
+  var convEl = document.getElementById('conversation');
+  var headingEl = document.getElementById('conversation-heading');
+  var emptyEl = document.getElementById('empty');
+  var promptEl = document.getElementById('prompt');
+  var sendBtn = document.getElementById('send');
+  var stopBtn = document.getElementById('stop');
+  var regenBtn = document.getElementById('regenerate');
+  var statusEl = document.getElementById('status');
+  var formEl = document.getElementById('composer');
+  var announcerEl = document.getElementById('announcer');
+  var alerterEl = document.getElementById('alerter');
+
+  // ---- Announcements ----
+  var announceTimers = { polite: null, assertive: null };
+  function announce(text, assertive) {
+    var el = assertive ? alerterEl : announcerEl;
+    var key = assertive ? 'assertive' : 'polite';
+    clearTimeout(announceTimers[key]);
+    el.textContent = '';
+    // Small delay so identical consecutive messages are still announced.
+    announceTimers[key] = setTimeout(function () { el.textContent = text; }, 100);
+  }
+
+  // ---- Helpers ----
+  function isStreaming() { return current !== null; }
+
+  function lastUserIndex() {
+    for (var i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') return i;
+    }
+    return -1;
+  }
+
+  function setStatus(kind, text) {
+    statusEl.className = kind || '';
+    statusEl.textContent = text;
+  }
+
+  function updateControls() {
+    var active = document.activeElement;
+    var streaming = isStreaming();
+    sendBtn.disabled = streaming || promptEl.value.trim() === '';
+    stopBtn.disabled = !streaming;
+    regenBtn.disabled = streaming || lastUserIndex() === -1;
+    convEl.setAttribute('aria-busy', streaming ? 'true' : 'false');
+
+    // Never leave keyboard focus on a control that just became disabled.
+    if (active && active.tagName === 'BUTTON' && active.disabled) {
+      promptEl.focus();
+    }
+  }
+
+  function nearBottom() {
+    return convEl.scrollHeight - convEl.scrollTop - convEl.clientHeight < 80;
+  }
+
+  function scrollToBottom() { convEl.scrollTop = convEl.scrollHeight; }
+
+  function autoResize() {
+    promptEl.style.height = 'auto';
+    promptEl.style.height = Math.min(promptEl.scrollHeight, 200) + 'px';
+  }
+
+  // ---- Rendering ----
+  function createMessageEl(msg) {
+    var id = 'msg-' + (++msgCounter);
+    var wrap = document.createElement('article');
+    wrap.className = 'msg ' + msg.role;
+    wrap.setAttribute('aria-labelledby', id + '-role');
+
+    var role = document.createElement('h3');
+    role.className = 'role';
+    role.id = id + '-role';
+    role.textContent = msg.role === 'user' ? 'You' : 'Assistant';
+
+    var bubble = document.createElement('div');
+    bubble.className = 'bubble';
+
+    var note = document.createElement('p');
+    note.className = 'note';
+
+    wrap.appendChild(role);
+    wrap.appendChild(bubble);
+    wrap.appendChild(note);
+
+    msg._el = wrap;
+    msg._bubble = bubble;
+    msg._note = note;
+    updateMessageEl(msg);
+    return wrap;
+  }
+
+  function updateMessageEl(msg) {
+    if (!msg._el) return;
+    var bubble = msg._bubble;
+    var note = msg._note;
+
+    if (msg.role === 'assistant') {
+      var streaming = msg.status === 'streaming';
+      msg._el.classList.toggle('streaming', streaming);
+      msg._el.setAttribute('aria-busy', streaming ? 'true' : 'false');
+
+      if (msg.content === '') {
+        bubble.classList.add('placeholder');
+        if (streaming) bubble.textContent = 'Thinking…';
+        else if (msg.status === 'stopped') bubble.textContent = '(stopped before any text was generated)';
+        else if (msg.status === 'error') bubble.textContent = '(no response)';
+        else bubble.textContent = '(empty response)';
+      } else {
+        bubble.classList.remove('placeholder');
+        bubble.textContent = msg.content;
+        if (streaming) {
+          var cursor = document.createElement('span');
+          cursor.className = 'cursor';
+          cursor.setAttribute('aria-hidden', 'true');
+          cursor.textContent = '▍';
+          bubble.appendChild(cursor);
+        }
+      }
+
+      note.className = 'note';
+      if (msg.status === 'stopped') {
+        note.classList.add('stopped');
+        note.textContent = 'Stopped by user';
+      } else if (msg.status === 'error') {
+        note.classList.add('error');
+        note.textContent = 'Error: ' + (msg.error || 'unknown error');
+      } else {
+        note.textContent = '';
+      }
+    } else {
+      bubble.textContent = msg.content;
+      note.textContent = '';
+    }
+  }
+
+  function renderAll() {
+    while (convEl.firstChild) convEl.removeChild(convEl.firstChild);
+    convEl.appendChild(headingEl);
+    if (messages.length === 0) {
+      convEl.appendChild(emptyEl);
+      return;
+    }
+    for (var i = 0; i < messages.length; i++) {
+      convEl.appendChild(messages[i]._el || createMessageEl(messages[i]));
+    }
+    scrollToBottom();
+  }
+
+  function appendMessage(msg) {
+    messages.push(msg);
+    if (emptyEl.parentNode) emptyEl.parentNode.removeChild(emptyEl);
+    convEl.appendChild(createMessageEl(msg));
+    scrollToBottom();
+  }
+
+  function errorText(err) {
+    if (!err) return 'unknown error';
+    if (typeof err === 'string') return err;
+    if (err.message) return String(err.message);
+    try { return JSON.stringify(err); } catch (e) { return String(err); }
+  }
+
+  // ---- Streaming ----
+  function buildHistory() {
+    // Send user messages and assistant answers that contain text.
+    var out = [];
+    for (var i = 0; i < messages.length; i++) {
+      var m = messages[i];
+      if (m.role === 'user') {
+        out.push({ role: 'user', content: m.content });
+      } else if (m.content !== '' && m.status !== 'streaming') {
+        out.push({ role: 'assistant', content: m.content });
+      }
+    }
+    return out;
+  }
+
+  function closeRequest(req, status, err) {
+    if (req.closed) return;
+    req.closed = true;
+    if (current === req) current = null;
+    req.msg.status = status;
+    if (err !== undefined) req.msg.error = errorText(err);
+    updateMessageEl(req.msg);
+
+    var content = req.msg.content;
+    if (status === 'finished') {
+      setStatus('finished', 'Finished');
+      announce('Answer finished. Assistant said: ' + (content || '(empty response)'));
+    } else if (status === 'stopped') {
+      setStatus('stopped', 'Stopped');
+      announce(content
+        ? 'Answer stopped. Partial answer kept: ' + content
+        : 'Answer stopped before any text was generated.');
+    } else if (status === 'error') {
+      setStatus('error', 'Error: ' + req.msg.error);
+      announce('Error: ' + req.msg.error +
+        (content ? '. Partial answer: ' + content : ''), true);
+    }
+
+    updateControls();
+  }
+
+  function startAssistant() {
+    var history = buildHistory();
+    var msg = { role: 'assistant', content: '', status: 'streaming' };
+    appendMessage(msg);
+
+    var req = { msg: msg, handle: null, closed: false };
+    current = req;
+    setStatus('generating', 'Generating…');
+    announce('Assistant is generating an answer.');
+    updateControls();
+
+    var callbacks = {
+      onToken: function (text) {
+        // Ignore tokens arriving after stop/finish/error (e.g. one in flight after abort()).
+        if (req.closed || current !== req) return;
+        if (text == null) return;
+        var stick = nearBottom();
+        msg.content += String(text);
+        updateMessageEl(msg);
+        if (stick) scrollToBottom();
+      },
+      onDone: function () {
+        if (req.closed) return;
+        closeRequest(req, 'finished');
+      },
+      onError: function (error) {
+        if (req.closed) return;
+        closeRequest(req, 'error', error);
+      }
+    };
+
+    try {
+      if (!window.ChatSDK || typeof window.ChatSDK.streamChat !== 'function') {
+        throw new Error('Chat service is unavailable.');
+      }
+      var handle = window.ChatSDK.streamChat(history, callbacks);
+      req.handle = handle;
+    } catch (e) {
+      closeRequest(req, 'error', e);
+    }
+  }
+
+  function stopStreaming() {
+    var req = current;
+    if (!req) return;
+    // Mark closed first so any late onToken is ignored; partial text is kept.
+    closeRequest(req, 'stopped');
+    try {
+      if (req.handle && typeof req.handle.abort === 'function') req.handle.abort();
+    } catch (e) {
+      // Ignore abort failures; the answer is already marked as stopped locally.
+    }
+    promptEl.focus();
+  }
+
+  function send() {
+    if (isStreaming()) {
+      announce('The assistant is still generating. Press Stop or Escape to stop it first.');
+      return;
+    }
+    var text = promptEl.value;
+    if (text.trim() === '') {
+      announce('Type a message before sending.');
+      return;
+    }
+    appendMessage({ role: 'user', content: text });
+    promptEl.value = '';
+    autoResize();
+    promptEl.focus();
+    startAssistant();
+  }
+
+  function regenerate() {
+    if (isStreaming()) return;
+    var idx = lastUserIndex();
+    if (idx === -1) return;
+    // Remove any assistant answers after the last user message.
+    messages = messages.slice(0, idx + 1);
+    renderAll();
+    startAssistant();
+    // Keep focus on a useful, enabled control.
+    if (!stopBtn.disabled) stopBtn.focus();
+    else promptEl.focus();
+  }
+
+  // ---- Events ----
+  formEl.addEventListener('submit', function (e) {
+    e.preventDefault();
+    send();
+  });
+
+  promptEl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      send();
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if ((e.key === 'Escape' || e.key === 'Esc') && isStreaming()) {
+      e.preventDefault();
+      stopStreaming();
+    }
+  });
+
+  promptEl.addEventListener('input', function () {
+    autoResize();
+    updateControls();
+  });
+
+  stopBtn.addEventListener('click', stopStreaming);
+  regenBtn.addEventListener('click', regenerate);
+
+  // ---- Init ----
+  setStatus('', 'Ready');
+  updateControls();
+  promptEl.focus();
+})();
+</script>
+</body>
+</html>
